@@ -59,8 +59,8 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="w-full flex justify-center pt-1 bg-white dark:bg-gray-600">
-      <div className="w-[90%] md:w-[97%] lg:w-[90%] bg-[#319b87] dark:bg-gray-900 rounded">
+    <nav className="w-full flex justify-center pt-1 bg-gray-50 dark:bg-gray-900">
+      <div className="w-[90%] md:w-[97%] lg:w-[90%] bg-[#319b87]  dark:bg-gray-600 rounded">
         {/* Desktop Navigation */}
 
         {/* <div className="hidden lg:flex items-center justify-center "> */}
