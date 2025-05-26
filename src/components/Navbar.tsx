@@ -12,6 +12,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { ModeToggle } from "./ThemesToggle";
 import { Button } from "./ui/button";
+// import { BiCategory } from "react-icons/bi";
 
 const Navbar = () => {
   const pathname = usePathname();
@@ -23,11 +24,17 @@ const Navbar = () => {
       label: "VIEW VENDORS",
       icon: <MdStorefront size={20} />,
     },
+    // {
+    //   href: "/categories",
+    //   label: "CATEGORIES",
+    //   icon: <BiCategory size={20} />,
+    // },
     {
       href: "/add-goods",
       label: "ADD GOODS",
       icon: <MdAddShoppingCart size={20} />,
     },
+
     {
       href: "/view-goods",
       label: "VIEW GOODS",
@@ -63,14 +70,13 @@ const Navbar = () => {
       <div className="w-[90%] md:w-[97%] lg:w-[90%] bg-[#319b87]  dark:bg-gray-600 rounded">
         {/* Desktop Navigation */}
 
-        {/* <div className="hidden lg:flex items-center justify-center "> */}
         <div className="hidden lg:flex items-center justify-center ">
           <div className="hidden lg:flex items-center justify-center p-3">
             {navLinks.map(({ href, label, icon }) => (
               <Link
                 key={href}
                 href={href}
-                className={`flex items-center space-x-2 p-2 mx-1 rounded text-sm transition-colors duration-200 ${
+                className={`flex items-center space-x-1 py-2 px-1 mx-1 rounded text-xs transition-colors duration-200 ${
                   pathname === href
                     ? "bg-[#497970] text-white"
                     : "hover:bg-blue-500 hover:text-white text-white"
@@ -86,16 +92,14 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* </div> */}
-
         {/* Tablet Navigation */}
-        <div className="hidden md:flex lg:hidden items-center justify-between p-3 overflow-x-auto scrollbar-hide">
+        <div className="hidden md:flex lg:hidden items-center justify-between py-3 px-1 overflow-x-auto scrollbar-hide">
           <div className="flex space-x-1">
             {navLinks.map(({ href, label, icon }) => (
               <Link
                 key={href}
                 href={href}
-                className={`flex items-center space-x-2 p-2 rounded text-xs transition-colors duration-200 whitespace-nowrap ${
+                className={`flex items-center space-x-1 py-2 px-1 rounded text-xs transition-colors duration-200 whitespace-nowrap ${
                   pathname === href
                     ? "bg-[#497970] text-white text-xs"
                     : "hover:bg-blue-500 hover:text-white text-white"
