@@ -1,19 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Search,
-  Plus,
-  Edit,
-  Trash2,
-  Eye,
   Package,
   AlertTriangle,
   TrendingUp,
   TrendingDown,
 } from "lucide-react";
+import {
+  ColumnDef,
+  useReactTable,
+  getCoreRowModel,
+  flexRender,
+} from "@tanstack/react-table";
 
-// Types
 interface Product {
   id: string;
   name: string;
@@ -36,7 +37,6 @@ interface Product {
   barcode?: string;
 }
 
-// Mock data
 const mockProducts: Product[] = [
   {
     id: "1",
@@ -158,51 +158,56 @@ export default function GoodsPage() {
   const [categoryFilter, setCategoryFilter] =
     useState<string>("All Categories");
   const [statusFilter, setStatusFilter] = useState<
-    | "all categories"
-    | "active"
-    | "inactive"
-    | "discontinued"
-    | "low-stock"
-    | "out-of-stock"
-  >("all categories");
+    "all" | "high-stock" | "low-stock" | "out-of-stock"
+  >("all");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showModal, setShowModal] = useState(false);
-  // const [showEditModal, setShowEditModal] = useState(false);
-  // const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [formData, setFormData] = useState<Partial<Product>>({});
   const [isEditing, setIsEditing] = useState(false);
 
   // Filter products based on search term, category, and status
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch =
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.supplier.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredProducts = useMemo(() => {
+    return products.filter((product) => {
+      // Search matching - simplified and more efficient
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch =
+        !searchTerm ||
+        product.name.toLowerCase().includes(searchLower) ||
+        product.sku.toLowerCase().includes(searchLower) ||
+        product.category.toLowerCase().includes(searchLower) ||
+        product.supplier.toLowerCase().includes(searchLower);
 
-    const matchesCategory =
-      categoryFilter === "All Categories" ||
-      product.category === categoryFilter;
+      // Category matching
+      const matchesCategory =
+        categoryFilter === "All Categories" ||
+        product.category === categoryFilter;
 
-    let matchesStatus = true;
-    switch (statusFilter) {
-      case "all categories":
-        matchesStatus = true;
-        break;
-      case "low-stock":
-        matchesStatus =
-          product.quantity > 0 && product.quantity <= product.minStockLevel;
-        break;
-      case "out-of-stock":
-        matchesStatus = product.quantity === 0;
-        break;
-      default:
-        matchesStatus = product.status === statusFilter;
-    }
+      // Status matching
+      let matchesStatus = true;
+      switch (statusFilter) {
+        case "all":
+          matchesStatus = true;
+          break;
+        case "low-stock":
+          matchesStatus =
+            product.quantity > 0 && product.quantity <= product.minStockLevel;
+          break;
+        case "out-of-stock":
+          matchesStatus = product.quantity === 0;
+          break;
+        case "high-stock":
+          matchesStatus = product.quantity > product.minStockLevel;
+          break;
+        default:
+          matchesStatus = product.status === statusFilter;
+      }
 
-    return matchesSearch && matchesCategory && matchesStatus;
-  });
+      return matchesSearch && matchesCategory && matchesStatus;
+    });
+  }, [products, searchTerm, categoryFilter, statusFilter]);
 
   const handleViewProduct = (product: Product) => {
     setSelectedProduct(product);
@@ -270,14 +275,14 @@ export default function GoodsPage() {
         createdDate: new Date().toISOString().split("T")[0],
       } as Product;
       setProducts([...products, newProduct]);
-      setShowAddModal(false);
     }
     setFormData({});
     setSelectedProduct(null);
     setIsEditing(false);
   };
 
-  const getStatusBadge = (product: Product) => {
+  const getStatusBadge = useCallback((product: Product) => {
+    const halfProducts = product.quantity > product.minStockLevel;
     if (product.quantity === 0) {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
@@ -290,26 +295,14 @@ export default function GoodsPage() {
           Low Stock
         </span>
       );
-    } else if (product.status === "active") {
+    } else if (halfProducts) {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-          Active
-        </span>
-      );
-    } else if (product.status === "inactive") {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
-          Inactive
-        </span>
-      );
-    } else {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-          Discontinued
+          High Stock
         </span>
       );
     }
-  };
+  }, []);
 
   const getProfitMargin = (price: number, costPrice: number) => {
     if (costPrice === 0) return 0;
@@ -321,17 +314,131 @@ export default function GoodsPage() {
   };
 
   // Calculate summary stats
-  const totalProducts = products.length;
-  const lowStockProducts = products.filter(
-    (p) => p.quantity > 0 && p.quantity <= p.minStockLevel
-  ).length;
-  const outOfStockProducts = products.filter((p) => p.quantity === 0).length;
-  const totalValue = products.reduce((sum, p) => sum + p.price * p.quantity, 0);
+
+  const summaryStats = useMemo(() => {
+    const totalProducts = products.length;
+    const lowStockProducts = products.filter(
+      (p) => p.quantity > 0 && p.quantity <= p.minStockLevel
+    ).length;
+    const outOfStockProducts = products.filter((p) => p.quantity === 0).length;
+    const totalValue = products.reduce(
+      (sum, p) => sum + p.price * p.quantity,
+      0
+    );
+
+    return {
+      totalProducts,
+      lowStockProducts,
+      outOfStockProducts,
+      totalValue,
+    };
+  }, [products]);
+
+  const handleSearchChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value;
+      setSearchTerm(value);
+      console.log("searchTerm", value);
+    },
+    []
+  );
+
+  const columns = useMemo<ColumnDef<Product>[]>(
+    () => [
+      {
+        accessorKey: "sku",
+        header: "Product ID",
+        // cell: ({ getValue }) => (
+        //   <span className="text-sm">#{getValue() as string}</span>
+        // ),
+      },
+      { accessorKey: "name", header: "Name" },
+      { accessorKey: "costPrice", header: "Cost Price" },
+      {
+        accessorKey: "price",
+        header: "Selling Price",
+      },
+      { accessorKey: "quantity", header: "Quantity" },
+      { accessorKey: "stockLevel", header: "Stock Level" },
+    ],
+    []
+  );
+
+  const table = useReactTable<Product>({
+    data: filteredProducts,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+  });
+
+  const goodsTable = useMemo(() => {
+    return (
+      <div className="relative overflow-x-auto rounded-lg ">
+        {filteredProducts.length === 0 ? (
+          <div className="text-center py-12">
+            <span className="text-gray-400 dark:text-gray-500 mb-4 block">
+              <Package className="w-12 h-12 mx-auto" />
+            </span>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+              No products found
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              Try adjusting your search criteria or add a new product.
+            </p>
+          </div>
+        ) : (
+          <table className="w-full border-collapse text-sm">
+            {/* Table Header */}
+            <thead className="bg-[#f4f3ee] text-gray-800 dark:bg-gray-800 dark:text-gray-100 font-semibold">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <th key={header.id} className="px-5 py-3">
+                      {flexRender(
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+
+            {/* Table Body */}
+            <tbody className="text-gray-700 dark:text-gray-200">
+              {table.getRowModel().rows.map((row, index) => (
+                <tr
+                  key={row.id}
+                  className={`${
+                    index % 2 === 0
+                      ? "bg-white dark:bg-gray-900"
+                      : "bg-gray-50 dark:bg-gray-800"
+                  } hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-300 text-center cursor-pointer`}
+                  onClick={() => handleViewProduct(row.original)}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id} className="px-5 py-4">
+                      {cell.column.id === "stockLevel" ? (
+                        <>{getStatusBadge(row.original)}</>
+                      ) : (
+                        flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    );
+  }, [table, filteredProducts, getStatusBadge]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             Inventory Goods
@@ -342,8 +449,8 @@ export default function GoodsPage() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 md:p-6">
             <div className="flex items-center">
               <Package className="w-8 h-8 text-blue-600 dark:text-blue-400" />
               <div className="ml-4">
@@ -351,12 +458,12 @@ export default function GoodsPage() {
                   Total Products
                 </p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {totalProducts}
+                  {summaryStats.totalProducts}
                 </p>
               </div>
             </div>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 md:p-6">
             <div className="flex items-center">
               <AlertTriangle className="w-8 h-8 text-yellow-600 dark:text-yellow-400" />
               <div className="ml-4">
@@ -364,12 +471,12 @@ export default function GoodsPage() {
                   Low Stock
                 </p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {lowStockProducts}
+                  {summaryStats.lowStockProducts}
                 </p>
               </div>
             </div>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 md:p-6">
             <div className="flex items-center">
               <TrendingDown className="w-8 h-8 text-red-600 dark:text-red-400" />
               <div className="ml-4">
@@ -377,12 +484,12 @@ export default function GoodsPage() {
                   Out of Stock
                 </p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {outOfStockProducts}
+                  {summaryStats.outOfStockProducts}
                 </p>
               </div>
             </div>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 md:p-6">
             <div className="flex items-center">
               <TrendingUp className="w-8 h-8 text-green-600 dark:text-green-400" />
               <div className="ml-4">
@@ -390,7 +497,7 @@ export default function GoodsPage() {
                   Total Value
                 </p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  ${totalValue.toLocaleString()}
+                  ${summaryStats.totalValue.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -407,7 +514,7 @@ export default function GoodsPage() {
                 type="text"
                 placeholder="Search products..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={handleSearchChange}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
               />
             </div>
@@ -432,155 +539,15 @@ export default function GoodsPage() {
               className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             >
               <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="discontinued">Discontinued</option>
+              <option value="high-stock">High Stock</option>
               <option value="low-stock">Low Stock</option>
               <option value="out-of-stock">Out of Stock</option>
             </select>
           </div>
-
-          {/* Add Product Button */}
-          <button
-            onClick={handleAddProduct}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-medium rounded-lg transition-colors duration-200"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Add Product
-          </button>
         </div>
 
-        {/* Products Grid */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredProducts.map((product) => (
-            <div
-              key={product.id}
-              className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow duration-200"
-            >
-              {/* Header */}
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-                    {product.name}
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    SKU: {product.sku}
-                  </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {product.category}
-                  </p>
-                </div>
-                {getStatusBadge(product)}
-              </div>
-
-              {/* Price and Stock Info */}
-              <div className="space-y-3 mb-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Price:
-                  </span>
-                  <span className="font-semibold text-gray-900 dark:text-white">
-                    ${product.price}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Stock:
-                  </span>
-                  <span className="font-semibold text-gray-900 dark:text-white">
-                    {product.quantity} {product.unit}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Value:
-                  </span>
-                  <span className="font-semibold text-gray-900 dark:text-white">
-                    ${getTotalValue(product.price, product.quantity)}
-                  </span>
-                </div>
-                {/* <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Margin:
-                  </span>
-                  <span className="font-semibold text-green-600 dark:text-green-400">
-                    {getProfitMargin(product.price, product.costPrice)}%
-                  </span>
-                </div> */}
-              </div>
-
-              {/* Stock Level Indicator */}
-              <div className="mb-4">
-                <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
-                  <span>Stock Level</span>
-                  <span>
-                    {product.quantity}/{product.maxStockLevel}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div
-                    className={`h-2 rounded-full ${
-                      product.quantity === 0
-                        ? "bg-red-500"
-                        : product.quantity <= product.minStockLevel
-                        ? "bg-yellow-500"
-                        : "bg-green-500"
-                    }`}
-                    style={{
-                      width: `${Math.min(
-                        (product.quantity / product.maxStockLevel) * 100,
-                        100
-                      )}%`,
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Location */}
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                📍 {product.location}
-              </p>
-
-              {/* Actions */}
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => handleViewProduct(product)}
-                  className="flex-1 inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors duration-200"
-                >
-                  <Eye className="w-4 h-4 mr-1" />
-                  View
-                </button>
-                <button
-                  onClick={() => handleEditProduct(product)}
-                  className="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors duration-200"
-                >
-                  <Edit className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDeleteProduct(product)}
-                  className="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors duration-200"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Empty State */}
-        {filteredProducts.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-gray-400 dark:text-gray-500 mb-4">
-              <Package className="w-12 h-12 mx-auto" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-              No products found
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400">
-              Try adjusting your search criteria or add a new product.
-            </p>
-          </div>
-        )}
+        {/* Table  for goods */}
+        {goodsTable}
       </div>
 
       {/* Product Detail Modal */}
