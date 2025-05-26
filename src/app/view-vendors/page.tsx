@@ -24,10 +24,6 @@ interface Vendor {
   state: string;
   zipCode: string;
   contactPerson: string;
-  status: "active" | "inactive";
-  // lastOrder: string;
-  // totalOrders: number;
-  // rating: number;
 }
 
 // Mock data
@@ -42,10 +38,6 @@ const mockVendors: Vendor[] = [
     state: "NY",
     zipCode: "10001",
     contactPerson: "John Smith",
-    status: "active",
-    // lastOrder: "2024-01-15",
-    // totalOrders: 128,
-    // rating: 4.8,
   },
   {
     id: "2",
@@ -57,10 +49,6 @@ const mockVendors: Vendor[] = [
     state: "CA",
     zipCode: "90210",
     contactPerson: "Sarah Johnson",
-    status: "active",
-    // lastOrder: "2024-01-20",
-    // totalOrders: 89,
-    // rating: 4.5,
   },
   {
     id: "3",
@@ -72,19 +60,15 @@ const mockVendors: Vendor[] = [
     state: "IL",
     zipCode: "60601",
     contactPerson: "Mike Wilson",
-    status: "inactive",
-    // lastOrder: "2023-12-05",
-    // totalOrders: 34,
-    // rating: 4.2,
   },
 ];
 
 const VendorsPage = () => {
   const [vendors, setVendors] = useState<Vendor[]>(mockVendors);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | "active" | "inactive"
-  >("all");
+  // const [statusFilter, setStatusFilter] = useState<
+  //   "all" | "active" | "inactive"
+  // >("all");
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -100,9 +84,9 @@ const VendorsPage = () => {
       vendor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       vendor.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       vendor.contactPerson.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      statusFilter === "all" || vendor.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    // const matchesStatus =
+    //   statusFilter === "all" || vendor.status === statusFilter;
+    return matchesSearch;
   });
 
   const handleViewVendor = (vendor: Vendor) => {
@@ -120,7 +104,6 @@ const VendorsPage = () => {
       state: "",
       zipCode: "",
       contactPerson: "",
-      status: "active",
     });
     setIsEditing(false);
     setShowAddModal(true);
@@ -176,20 +159,20 @@ const VendorsPage = () => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const getStatusBadge = (status: string) => {
-    if (status === "active") {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-          Active
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-        Inactive
-      </span>
-    );
-  };
+  // const getStatusBadge = (status: string) => {
+  //   if (status === "active") {
+  //     return (
+  //       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+  //         Active
+  //       </span>
+  //     );
+  //   }
+  //   return (
+  //     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+  //       Inactive
+  //     </span>
+  //   );
+  // };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
@@ -220,7 +203,7 @@ const VendorsPage = () => {
             </div>
 
             {/* Status Filter */}
-            <select
+            {/* <select
               value={statusFilter}
               onChange={(e) =>
                 setStatusFilter(e.target.value as "all" | "active" | "inactive")
@@ -230,7 +213,7 @@ const VendorsPage = () => {
               <option value="all">All Status</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
-            </select>
+            </select> */}
           </div>
 
           {/* Add Vendor Button */}
@@ -261,7 +244,6 @@ const VendorsPage = () => {
                     {vendor.contactPerson}
                   </p>
                 </div>
-                {getStatusBadge(vendor.status)}
               </div>
 
               {/* Contact Info */}
@@ -276,7 +258,11 @@ const VendorsPage = () => {
                 </div>
                 <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                   <MapPin className="w-4 h-4 mr-2" />
-                  {vendor.city}, {vendor.state}
+                  <p className="">
+                    {vendor.address}
+                    <br />
+                    {vendor.city}, {vendor.state} {vendor.zipCode}
+                  </p>
                 </div>
               </div>
 
@@ -480,21 +466,6 @@ const VendorsPage = () => {
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Status
-                      </label>
-                      <select
-                        value={formData.status || "active"}
-                        onChange={(e) =>
-                          handleInputChange("status", e.target.value)
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      >
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                      </select>
-                    </div>
                   </div>
 
                   <div className="flex space-x-3">
@@ -614,12 +585,7 @@ const VendorsPage = () => {
                         {selectedVendor.contactPerson}
                       </p>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Status
-                      </label>
-                      {getStatusBadge(selectedVendor.status)}
-                    </div>
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Email
@@ -651,16 +617,6 @@ const VendorsPage = () => {
                   </p>
                 </div>
               </div>
-
-              {/* Modal Actions */}
-              {/* <div className="mt-6 flex space-x-3">
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors duration-200"
-                >
-                  Close
-                </button>
-              </div> */}
             </div>
           </div>
         </div>
