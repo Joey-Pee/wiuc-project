@@ -46,8 +46,8 @@ const Navbar = () => {
       icon: <FaFileInvoiceDollar size={20} />,
     },
     {
-      href: "/issued-goods",
-      label: "ISSUED GOODS",
+      href: "/issue-goods",
+      label: "ISSUE GOODS",
       icon: <FaTruckLoading size={20} />,
     },
     {
