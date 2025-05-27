@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Save,
   Plus,
@@ -19,10 +19,7 @@ interface Product {
   name: string;
   sku: string;
   description: string;
-  category: {
-    name: string;
-    id: string;
-  };
+  category: string;
   sellingPrice: number;
   costPrice: number;
   quantity: number;
@@ -31,28 +28,33 @@ interface Product {
   grossPrice: number;
 }
 
-const categories = [
-  { id: "1", name: "Beverages" },
-  { id: "2", name: "Bread/Bakery" },
-  { id: "3", name: "Canned/Jarred Goods" },
-  { id: "4", name: "Dairy" },
-  { id: "5", name: "Dry/Baking Goods" },
-  { id: "6", name: "Frozen Foods" },
-  { id: "7", name: "Meat" },
-  { id: "8", name: "Produce" },
-  { id: "9", name: "Cleaners" },
-  { id: "10", name: "Paper Goods" },
-  { id: "11", name: "Personal Care" },
-  { id: "12", name: "Other" },
-];
+// const categories = [
+//   { id: "1", name: "Beverages" },
+//   { id: "2", name: "Bread/Bakery" },
+//   { id: "3", name: "Canned/Jarred Goods" },
+//   { id: "4", name: "Dairy" },
+//   { id: "5", name: "Dry/Baking Goods" },
+//   { id: "6", name: "Frozen Foods" },
+//   { id: "7", name: "Meat" },
+//   { id: "8", name: "Produce" },
+//   { id: "9", name: "Cleaners" },
+//   { id: "10", name: "Paper Goods" },
+//   { id: "11", name: "Personal Care" },
+//   { id: "12", name: "Other" },
+// ];
 
 const vendors = [
-  "TechCorp Solutions",
-  "Global Supplies Inc",
-  "Prime Electronics",
-  "Quality Distributors",
-  "Reliable Suppliers",
+  { id: 1, name: "TechCorp Solutions" },
+  { id: 2, name: "Global Supplies Inc" },
+  { id: 3, name: "Prime Electronics" },
+  { id: 4, name: "Quality Distributors" },
+  { id: 5, name: "Reliable Suppliers" },
 ];
+
+interface Category {
+  id: string;
+  name: string;
+}
 
 const AddProductPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -61,10 +63,7 @@ const AddProductPage = () => {
     name: "",
     sku: "",
     description: "",
-    category: {
-      name: "",
-      id: "Category id",
-    },
+    category: "",
     sellingPrice: 0,
     costPrice: 0,
     quantity: 0,
@@ -76,16 +75,34 @@ const AddProductPage = () => {
 
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [categoriesData, setCategoriesData] = useState<Category[]>([]);
+
+  useEffect(() => {
+    const fetchCategoriesData = async () => {
+      try {
+        const response = await fetch("/api/categories");
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const result = await response.json();
+        setCategoriesData(result.data);
+
+        console.log("categories", result.data);
+      } catch (err) {
+        console.error("Error fetching categories", err);
+      } finally {
+      }
+    };
+
+    fetchCategoriesData();
+  }, []);
 
   const resetForm = () => {
     setFormData({
       name: "",
       sku: "",
       description: "",
-      category: {
-        name: "",
-        id: "",
-      },
+      category: "",
       sellingPrice: 0,
       costPrice: 0,
       quantity: 0,
@@ -119,7 +136,7 @@ const AddProductPage = () => {
     if (!formData.sku?.trim()) {
       newErrors.sku = "SKU is required";
     }
-    if (!formData.category?.name) {
+    if (!formData.category) {
       newErrors.category = "Category is required";
     }
     if (!formData.sellingPrice || formData.sellingPrice <= 0) {
@@ -176,19 +193,7 @@ const AddProductPage = () => {
     field: keyof Product | string,
     value: string | number | boolean | { name: string; id: string }
   ) => {
-    if (field.includes(".")) {
-      // Handle nested objects like dimensions
-      const [parent, child] = field.split(".");
-      setFormData((prev) => ({
-        ...prev,
-        [parent]: {
-          ...(prev[parent as keyof Product] as any),
-          [child]: value,
-        },
-      }));
-    } else {
-      setFormData((prev) => ({ ...prev, [field]: value }));
-    }
+    setFormData((prev) => ({ ...prev, [field]: value }));
 
     // Clear error when user starts typing
     if (errors[field]) {
@@ -203,7 +208,7 @@ const AddProductPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200 md:pb-4">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -362,15 +367,9 @@ const AddProductPage = () => {
                     Category *
                   </label>
                   <select
-                    value={formData.category?.name || ""}
+                    value={formData.category || ""}
                     onChange={(e) => {
-                      const selectedCategory = categories.find(
-                        (cat) => cat.name === e.target.value
-                      );
-                      handleInputChange("category", {
-                        name: e.target.value,
-                        id: selectedCategory?.id || "",
-                      });
+                      handleInputChange("category", e.target.value);
                     }}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
                       errors.category
@@ -379,8 +378,8 @@ const AddProductPage = () => {
                     }`}
                   >
                     <option value="">Select category</option>
-                    {categories.map((category) => (
-                      <option key={category.id} value={category.name}>
+                    {categoriesData.map((category) => (
+                      <option key={category.id} value={category.id}>
                         {category.name}
                       </option>
                     ))}
@@ -532,8 +531,8 @@ const AddProductPage = () => {
                   >
                     <option value="">Select supplier</option>
                     {vendors.map((vendor) => (
-                      <option key={vendor} value={vendor}>
-                        {vendor}
+                      <option key={vendor.id} value={vendor.id}>
+                        {vendor.name}
                       </option>
                     ))}
                   </select>
