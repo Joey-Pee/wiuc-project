@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Search,
   Plus,
@@ -26,45 +26,25 @@ interface Vendor {
   contactPerson: string;
 }
 
-// Mock data
-const mockVendors: Vendor[] = [
-  {
-    id: "1",
-    name: "TechCorp Solutions",
-    email: "contact@techcorp.com",
-    phone: "+1 (555) 123-4567",
-    address: "123 Business Ave",
-    city: "New York",
-    state: "NY",
-    zipCode: "10001",
-    contactPerson: "John Smith",
-  },
-  {
-    id: "2",
-    name: "Global Supplies Inc",
-    email: "orders@globalsupplies.com",
-    phone: "+1 (555) 987-6543",
-    address: "456 Commerce St",
-    city: "Los Angeles",
-    state: "CA",
-    zipCode: "90210",
-    contactPerson: "Sarah Johnson",
-  },
-  {
-    id: "3",
-    name: "Prime Electronics",
-    email: "info@primeelectronics.com",
-    phone: "+1 (555) 456-7890",
-    address: "789 Industrial Blvd",
-    city: "Chicago",
-    state: "IL",
-    zipCode: "60601",
-    contactPerson: "Mike Wilson",
-  },
-];
+// const isValidVendor = (vendor: any): vendor is Vendor => {
+//   return (
+//     vendor &&
+//     typeof vendor === "object" &&
+//     typeof vendor.name === "string" &&
+//     typeof vendor.email === "string" &&
+//     typeof vendor.phone === "string" &&
+//     typeof vendor.address === "string" &&
+//     typeof vendor.city === "string" &&
+//     typeof vendor.state === "string" &&
+//     typeof vendor.zipCode === "string" &&
+//     typeof vendor.contactPerson === "string"
+//   );
+// };
 
 const VendorsPage = () => {
-  const [vendors, setVendors] = useState<Vendor[]>(mockVendors);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   // const [statusFilter, setStatusFilter] = useState<
   //   "all" | "active" | "inactive"
@@ -78,16 +58,48 @@ const VendorsPage = () => {
   const [formData, setFormData] = useState<Partial<Vendor>>({});
   const [isEditing, setIsEditing] = useState(false);
 
+  useEffect(() => {
+    const fetchVendors = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch("/api/vendors");
+        if (!response.ok) {
+          throw new Error("Failed to fetch vendors");
+        }
+        const data = await response.json();
+
+        // const vendorsArray = Array.isArray(data) ? data : data.vendors || [];
+        // const validVendors = vendorsArray.filter(isValidVendor);
+        setVendors(data.data);
+        console.log("vendors>>>", vendors);
+        setError(null);
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "An error occurred while fetching vendors"
+        );
+        setVendors([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchVendors();
+  }, []);
+
   // Filter vendors based on search term and status
-  const filteredVendors = vendors.filter((vendor) => {
-    const matchesSearch =
-      vendor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      vendor.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      vendor.contactPerson.toLowerCase().includes(searchTerm.toLowerCase());
-    // const matchesStatus =
-    //   statusFilter === "all" || vendor.status === statusFilter;
-    return matchesSearch;
-  });
+  const filteredVendors = Array.isArray(vendors)
+    ? vendors.filter((vendor) => {
+        const matchesSearch =
+          vendor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          vendor.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          vendor.contactPerson.toLowerCase().includes(searchTerm.toLowerCase());
+        // const matchesStatus =
+        //   statusFilter === "all" || vendor.status === statusFilter;
+        return matchesSearch;
+      })
+    : [];
 
   const handleViewVendor = (vendor: Vendor) => {
     setSelectedVendor(vendor);
@@ -121,58 +133,132 @@ const VendorsPage = () => {
     setShowDeleteModal(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (vendorToDelete) {
-      setVendors(vendors.filter((v) => v.id !== vendorToDelete.id));
-      setShowDeleteModal(false);
-      setVendorToDelete(null);
+      try {
+        const response = await fetch(`/api/vendors/${vendorToDelete.id}`, {
+          method: "DELETE",
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to delete vendor");
+        }
+
+        setVendors(vendors.filter((v) => v.id !== vendorToDelete.id));
+        setShowDeleteModal(false);
+        setVendorToDelete(null);
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "An error occurred while deleting vendor"
+        );
+      }
     }
   };
 
-  const handleSaveVendor = () => {
-    if (isEditing && selectedVendor) {
-      // Update existing vendor
-      setVendors(
-        vendors.map((v) =>
-          v.id === selectedVendor.id ? ({ ...v, ...formData } as Vendor) : v
-        )
+  const handleSaveVendor = async () => {
+    try {
+      if (isEditing && selectedVendor) {
+        // Update existing vendor
+        const response = await fetch(`/api/vendors/${selectedVendor.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to update vendor");
+        }
+
+        const updatedVendor = await response.json();
+        setVendors(
+          vendors.map((v) => (v.id === selectedVendor.id ? updatedVendor : v))
+        );
+        setShowEditModal(false);
+      } else {
+        const response = await fetch("/api/vendors", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to create vendor");
+        }
+
+        const newVendor = await response.json();
+        console.log("new vendor>>>", newVendor);
+        setVendors([...vendors, newVendor]);
+        console.log("vendors>>", vendors);
+        setShowAddModal(false);
+      }
+      setFormData({});
+      setSelectedVendor(null);
+      setIsEditing(false);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "An error occurred while saving vendor"
       );
-      setShowEditModal(false);
-    } else {
-      // Add new vendor
-      const newVendor: Vendor = {
-        ...formData,
-        id: Date.now().toString(),
-        lastOrder: "Never",
-        totalOrders: 0,
-        rating: 0,
-      } as Vendor;
-      setVendors([...vendors, newVendor]);
-      setShowAddModal(false);
     }
-    setFormData({});
-    setSelectedVendor(null);
-    setIsEditing(false);
   };
 
   const handleInputChange = (field: keyof Vendor, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // const getStatusBadge = (status: string) => {
-  //   if (status === "active") {
-  //     return (
-  //       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-  //         Active
-  //       </span>
-  //     );
-  //   }
-  //   return (
-  //     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-  //       Inactive
-  //     </span>
-  //   );
-  // };
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">
+            Loading vendors...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 mb-4">
+            <svg
+              className="w-12 h-12 mx-auto"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            Error
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
@@ -201,19 +287,6 @@ const VendorsPage = () => {
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
               />
             </div>
-
-            {/* Status Filter */}
-            {/* <select
-              value={statusFilter}
-              onChange={(e) =>
-                setStatusFilter(e.target.value as "all" | "active" | "inactive")
-              }
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select> */}
           </div>
 
           {/* Add Vendor Button */}
