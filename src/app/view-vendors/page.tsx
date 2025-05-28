@@ -64,14 +64,21 @@ const VendorsPage = () => {
         setIsLoading(true);
         const response = await fetch("/api/vendors");
         if (!response.ok) {
-          throw new Error("Failed to fetch vendors");
+          throw new Error("Failed to load vendors");
         }
         const data = await response.json();
 
-        // const vendorsArray = Array.isArray(data) ? data : data.vendors || [];
-        // const validVendors = vendorsArray.filter(isValidVendor);
+        // DEBUG: Log the actual structure
+        // console.log("Raw API response:", data);
+        // console.log("Data.data structure:", data.data);
+        // console.log("First vendor:", data.data?.[0]);
+        // console.log(
+        //   "First vendor keys:",
+        //   data.data?.[0] ? Object.keys(data.data[0]) : "No first vendor"
+        // );
+
         setVendors(data.data);
-        console.log("vendors>>>", vendors);
+        // console.log("vendors>>>", vendors);
         setError(null);
       } catch (err) {
         setError(
@@ -161,12 +168,15 @@ const VendorsPage = () => {
     try {
       if (isEditing && selectedVendor) {
         // Update existing vendor
-        const response = await fetch(`/api/vendors/${selectedVendor.id}`, {
+        const response = await fetch(`/api/vendors`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(formData),
+          body: JSON.stringify({
+            ...formData,
+            id: selectedVendor.id,
+          }),
         });
 
         if (!response.ok) {
@@ -174,8 +184,18 @@ const VendorsPage = () => {
         }
 
         const updatedVendor = await response.json();
-        setVendors(
-          vendors.map((v) => (v.id === selectedVendor.id ? updatedVendor : v))
+        // console.log("Update API Response:", updatedVendor);
+
+        // Ensure we have the vendor data
+        if (!updatedVendor.data) {
+          console.error("Updated vendor missing data:", updatedVendor);
+          throw new Error("Invalid vendor data received from server");
+        }
+
+        setVendors((prevVendors) =>
+          prevVendors.map((v) =>
+            v.id === selectedVendor.id ? updatedVendor.data : v
+          )
         );
         setShowEditModal(false);
       } else {
@@ -192,15 +212,29 @@ const VendorsPage = () => {
         }
 
         const newVendor = await response.json();
-        console.log("new vendor>>>", newVendor);
-        setVendors([...vendors, newVendor]);
-        console.log("vendors>>", vendors);
+        // console.log("API Response:", newVendor);
+        // console.log("Form Data:", formData);
+
+        // Ensure the new vendor has all required fields
+        if (!newVendor.data?.name) {
+          console.error("New vendor missing name:", newVendor);
+          throw new Error("Invalid vendor data received from server");
+        }
+
+        // Add the new vendor to the existing vendors array
+        setVendors((prevVendors) => {
+          // console.log("Previous vendors:", prevVendors);
+          const updatedVendors = [...prevVendors, newVendor.data];
+          // console.log("Updated vendors:", updatedVendors);
+          return updatedVendors;
+        });
         setShowAddModal(false);
       }
       setFormData({});
       setSelectedVendor(null);
       setIsEditing(false);
     } catch (err) {
+      console.error("Error in handleSaveVendor:", err);
       setError(
         err instanceof Error
           ? err.message
