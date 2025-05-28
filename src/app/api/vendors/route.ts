@@ -26,6 +26,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    console.log("Received request body:", body);
 
     // Validate required fields
     const requiredFields = [
@@ -60,6 +61,7 @@ export async function POST(request: Request) {
     }
 
     const data = await response.json();
+    console.log("API response data:", data);
     return NextResponse.json(data, { status: 201 });
   } catch (error) {
     console.error("Error creating vendor:", error);
@@ -70,15 +72,11 @@ export async function POST(request: Request) {
   }
 }
 
-export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(request: Request) {
   try {
     const body = await request.json();
-    const id = params.id;
 
-    const response = await fetch(`${baseUrl}/vendors/${id}`, {
+    const response = await fetch(`${baseUrl}/vendors`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
