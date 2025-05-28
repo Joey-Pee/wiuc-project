@@ -10,7 +10,6 @@ import {
   Save,
   Tag,
   DollarSign,
-  Truck,
 } from "lucide-react";
 import {
   ColumnDef,
@@ -25,23 +24,13 @@ import { FaEdit } from "react-icons/fa";
 interface Product {
   id: string;
   name: string;
-  sku: string;
-  category: string;
+  category: string; // This represents the category ID
   description: string;
-  price: number;
-  costPrice: number;
+  sellingPrice: number;
+  buyingPrice: number;
   quantity: number;
-  minStockLevel: number;
-  maxStockLevel: number;
-  supplier: string;
-  location: string;
   status: "active" | "inactive" | "discontinued";
-  lastUpdated: string;
-  createdDate: string;
-  unit: string;
-  weight?: number;
-  dimensions?: string;
-  barcode?: string;
+  grossPrice: number;
 }
 
 interface Category {
@@ -49,273 +38,16 @@ interface Category {
   name: string;
 }
 
-const mockProducts: Product[] = [
-  {
-    id: "1",
-    name: "Wireless Bluetooth Headphones",
-    sku: "WBH-001",
-    category: "1", // Beverages
-    description: "Premium wireless headphones with noise cancellation",
-    price: 199.99,
-    costPrice: 120.0,
-    quantity: 45,
-    minStockLevel: 10,
-    maxStockLevel: 100,
-    supplier: "TechCorp Solutions",
-    location: "Warehouse A - Section 1",
-    status: "active",
-    lastUpdated: "2024-01-20",
-    createdDate: "2023-12-01",
-    unit: "pieces",
-    weight: 0.3,
-    dimensions: "20x15x8 cm",
-    barcode: "1234567890123",
-  },
-  {
-    id: "2",
-    name: "Gaming Mechanical Keyboard",
-    sku: "GMK-002",
-    category: "12", // Other
-    description: "RGB mechanical keyboard with cherry MX switches",
-    price: 149.99,
-    costPrice: 85.0,
-    quantity: 5,
-    minStockLevel: 15,
-    maxStockLevel: 50,
-    supplier: "Global Supplies Inc",
-    location: "Warehouse A - Section 2",
-    status: "active",
-    lastUpdated: "2024-01-18",
-    createdDate: "2023-11-15",
-    unit: "pieces",
-    weight: 0.8,
-    dimensions: "45x15x4 cm",
-    barcode: "2345678901234",
-  },
-  {
-    id: "3",
-    name: "Office Chair Ergonomic",
-    sku: "OCE-003",
-    category: "12",
-    description: "Comfortable ergonomic office chair with lumbar support",
-    price: 299.99,
-    costPrice: 180.0,
-    quantity: 12,
-    minStockLevel: 5,
-    maxStockLevel: 25,
-    supplier: "Prime Electronics",
-    location: "Warehouse B - Section 1",
-    status: "active",
-    lastUpdated: "2024-01-15",
-    createdDate: "2023-10-20",
-    unit: "pieces",
-    weight: 15.5,
-    dimensions: "70x70x120 cm",
-  },
-  {
-    id: "4",
-    name: "USB-C Cable 2m",
-    sku: "USC-004",
-    category: "2", // Bread/Bakery
-    description: "High-speed USB-C charging and data cable",
-    price: 24.99,
-    costPrice: 8.5,
-    quantity: 0,
-    minStockLevel: 20,
-    maxStockLevel: 200,
-    supplier: "TechCorp Solutions",
-    location: "Warehouse A - Section 3",
-    status: "active",
-    lastUpdated: "2024-01-22",
-    createdDate: "2023-09-10",
-    unit: "pieces",
-    weight: 0.1,
-    dimensions: "200x2x1 cm",
-    barcode: "3456789012345",
-  },
-  {
-    id: "5",
-    name: "Vintage Desk Lamp",
-    sku: "VDL-005",
-    category: "12",
-    description: "Retro-style desk lamp with adjustable arm",
-    price: 89.99,
-    costPrice: 45.0,
-    quantity: 8,
-    minStockLevel: 5,
-    maxStockLevel: 30,
-    supplier: "Global Supplies Inc",
-    location: "Warehouse C - Section 1",
-    status: "discontinued",
-    lastUpdated: "2024-01-10",
-    createdDate: "2023-08-05",
-    unit: "pieces",
-    weight: 2.2,
-    dimensions: "25x25x45 cm",
-  },
-  {
-    id: "6",
-    name: "Almond Milk - 1L",
-    sku: "DML-006",
-    category: "4", // Dairy
-    description: "Organic almond milk with no added sugar",
-    price: 3.99,
-    costPrice: 2.2,
-    quantity: 35,
-    minStockLevel: 10,
-    maxStockLevel: 100,
-    supplier: "Green Farms Ltd.",
-    location: "Warehouse D - Dairy Section",
-    status: "active",
-    lastUpdated: "2024-01-25",
-    createdDate: "2023-12-10",
-    unit: "liters",
-    weight: 1,
-    dimensions: "7x7x25 cm",
-    barcode: "4567890123456",
-  },
-  {
-    id: "7",
-    name: "Canned Tuna - 200g",
-    sku: "CTN-007",
-    category: "3", // Canned/Jarred Goods
-    description: "Premium tuna chunks in olive oil",
-    price: 2.49,
-    costPrice: 1.2,
-    quantity: 80,
-    minStockLevel: 30,
-    maxStockLevel: 200,
-    supplier: "Ocean Foods",
-    location: "Warehouse B - Shelf 4",
-    status: "active",
-    lastUpdated: "2024-01-27",
-    createdDate: "2023-12-20",
-    unit: "cans",
-    weight: 0.2,
-    dimensions: "8x8x4 cm",
-    barcode: "5678901234567",
-  },
-  {
-    id: "8",
-    name: "All-Purpose Flour - 2kg",
-    sku: "APF-008",
-    category: "5", // Dry/Baking Goods
-    description: "Fine milled wheat flour for baking and cooking",
-    price: 5.99,
-    costPrice: 3.0,
-    quantity: 120,
-    minStockLevel: 50,
-    maxStockLevel: 300,
-    supplier: "Bakers Choice",
-    location: "Warehouse A - Flour Section",
-    status: "active",
-    lastUpdated: "2024-02-01",
-    createdDate: "2024-01-01",
-    unit: "kg",
-    weight: 2,
-    dimensions: "15x10x30 cm",
-    barcode: "6789012345678",
-  },
-  {
-    id: "9",
-    name: "Frozen Mixed Vegetables - 1kg",
-    sku: "FMV-009",
-    category: "6", // Frozen Foods
-    description: "Carrots, peas, corn, and beans mix",
-    price: 4.99,
-    costPrice: 2.5,
-    quantity: 60,
-    minStockLevel: 20,
-    maxStockLevel: 150,
-    supplier: "FrozenDelights",
-    location: "Freezer Room - A1",
-    status: "active",
-    lastUpdated: "2024-02-02",
-    createdDate: "2024-01-03",
-    unit: "kg",
-    weight: 1,
-    dimensions: "20x20x5 cm",
-    barcode: "7890123456789",
-  },
-  {
-    id: "10",
-    name: "Chicken Breast - 500g",
-    sku: "CHB-010",
-    category: "7", // Meat
-    description: "Boneless, skinless chicken breast",
-    price: 6.49,
-    costPrice: 3.8,
-    quantity: 30,
-    minStockLevel: 10,
-    maxStockLevel: 80,
-    supplier: "Poultry Farms Ltd.",
-    location: "Freezer Room - B2",
-    status: "active",
-    lastUpdated: "2024-02-05",
-    createdDate: "2024-01-05",
-    unit: "pack",
-    weight: 0.5,
-    dimensions: "18x12x4 cm",
-    barcode: "8901234567890",
-  },
-  {
-    id: "11",
-    name: "Toilet Paper - 12 Rolls",
-    sku: "TPR-011",
-    category: "10", // Paper Goods
-    description: "Soft and strong toilet paper rolls",
-    price: 9.99,
-    costPrice: 5.5,
-    quantity: 95,
-    minStockLevel: 20,
-    maxStockLevel: 150,
-    supplier: "CleanSupplies Ltd.",
-    location: "Warehouse C - Hygiene",
-    status: "active",
-    lastUpdated: "2024-02-06",
-    createdDate: "2024-01-07",
-    unit: "pack",
-    weight: 1.5,
-    dimensions: "30x25x15 cm",
-    barcode: "9012345678901",
-  },
-  {
-    id: "12",
-    name: "Hand Sanitizer - 500ml",
-    sku: "HSZ-012",
-    category: "11", // Personal Care
-    description: "Alcohol-based sanitizer with moisturizing effect",
-    price: 3.99,
-    costPrice: 1.9,
-    quantity: 150,
-    minStockLevel: 30,
-    maxStockLevel: 300,
-    supplier: "SafeCare",
-    location: "Warehouse D - Shelf 3",
-    status: "active",
-    lastUpdated: "2024-02-07",
-    createdDate: "2024-01-08",
-    unit: "bottle",
-    weight: 0.5,
-    dimensions: "7x7x18 cm",
-    barcode: "0123456789012",
-  },
-];
-
-const vendors = [
-  { id: 1, name: "TechCorp Solutions" },
-  { id: 2, name: "Global Supplies Inc" },
-  { id: 3, name: "Prime Electronics" },
-  { id: 4, name: "Quality Distributors" },
-  { id: 5, name: "Reliable Suppliers" },
-];
-
 type StatusFilter = "all" | "high-stock" | "low-stock" | "out-of-stock";
 
+const minStockLevel = 10;
+const maxStockLevel = 20;
+
+let goodsData: Product[] = [];
+
 export default function GoodsPage() {
-  const [products, setProducts] = useState<Product[]>(mockProducts);
   const [searchTerm, setSearchTerm] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<string>("1");
+  const [categoryFilter, setCategoryFilter] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<
     "all" | "high-stock" | "low-stock" | "out-of-stock"
   >("all");
@@ -330,88 +62,56 @@ export default function GoodsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchCategoriesData = async () => {
-      try {
-        const response = await fetch("/api/categories");
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const result = await response.json();
-        setCategoriesData(result.data);
-        // Set default category to "Beverages" (id: "1")
-        setCategoryFilter("1");
-        console.log("categories", result.data);
-      } catch (err) {
-        console.error("Error fetching categories", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCategoriesData();
+    Promise.all([fetchCategoriesData(), fetchProductsData()]);
   }, []);
 
-  // Filter products based on search term, category, and status
-  const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
-      // Search matching - simplified and more efficient
-      const searchLower = searchTerm.toLowerCase();
-      const matchesSearch =
-        !searchTerm ||
-        product.name.toLowerCase().includes(searchLower) ||
-        product.sku.toLowerCase().includes(searchLower) ||
-        product.category.toLowerCase().includes(searchLower) ||
-        product.supplier.toLowerCase().includes(searchLower);
-
-      // Category matching
-      const matchesCategory = product.category === categoryFilter;
-
-      // Status matching
-      let matchesStatus = true;
-      switch (statusFilter) {
-        case "all":
-          matchesStatus = true;
-          break;
-        case "low-stock":
-          matchesStatus =
-            product.quantity > 0 && product.quantity <= product.minStockLevel;
-          break;
-        case "out-of-stock":
-          matchesStatus = product.quantity === 0;
-          break;
-        case "high-stock":
-          matchesStatus = product.quantity > product.minStockLevel;
-          break;
-        default:
-          matchesStatus = product.status === statusFilter;
+  const fetchCategoriesData = async () => {
+    try {
+      const response = await fetch("/api/categories");
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+      const result = await response.json();
+      setCategoriesData(result.data);
 
-      return matchesSearch && matchesCategory && matchesStatus;
-    });
-  }, [products, searchTerm, categoryFilter, statusFilter]);
+      if (result.data && result.data.length > 0) {
+        setCategoryFilter(String(result.data[0].id));
+      }
+      console.log("categories", result.data);
+    } catch (err) {
+      console.error("Error fetching categories", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchProductsData = async () => {
+    try {
+      const response = await fetch("/api/goods");
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const result = await response.json();
+      console.log("API Response:", result);
+
+      if (result.data && Array.isArray(result.data)) {
+        goodsData = result.data;
+        console.log("Updated goodsData:", goodsData);
+      } else {
+        console.error("Invalid data format received:", result);
+        goodsData = [];
+      }
+    } catch (err) {
+      console.error("Error fetching products:", err);
+      goodsData = [];
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleViewProduct = (product: Product) => {
     setSelectedProduct(product);
     setShowModal(true);
-  };
-
-  const handleAddProduct = () => {
-    setFormData({
-      name: "",
-      sku: "",
-      category: "",
-      description: "",
-      price: 0,
-      costPrice: 0,
-      quantity: 0,
-      minStockLevel: 0,
-      maxStockLevel: 0,
-      supplier: "",
-      location: "",
-      status: "active",
-      unit: "pieces",
-    });
-    setIsEditing(false);
   };
 
   const handleEditProduct = (product: Product) => {
@@ -428,7 +128,7 @@ export default function GoodsPage() {
 
   const confirmDelete = () => {
     if (productToDelete) {
-      setProducts(products.filter((p) => p.id !== productToDelete.id));
+      goodsData = goodsData.filter((p) => p.id !== productToDelete.id);
       setShowDeleteModal(false);
       setProductToDelete(null);
     }
@@ -447,23 +147,19 @@ export default function GoodsPage() {
       const updatedProduct = {
         ...selectedProduct,
         ...formData,
-        lastUpdated: new Date().toISOString().split("T")[0],
       } as Product;
 
-      setProducts(
-        products.map((p) => (p.id === selectedProduct.id ? updatedProduct : p))
+      goodsData = goodsData.map((p) =>
+        p.id === selectedProduct.id ? updatedProduct : p
       );
       setShowEditModal(false);
     } else {
       // Add new product
       const newProduct: Product = {
         ...formData,
-        id: Date.now().toString(),
         grossPrice: calculateGrossPrice(),
-        lastUpdated: new Date().toISOString().split("T")[0],
-        createdDate: new Date().toISOString().split("T")[0],
       } as Product;
-      setProducts([...products, newProduct]);
+      goodsData = [...goodsData, newProduct];
     }
     setFormData({});
     setSelectedProduct(null);
@@ -473,19 +169,19 @@ export default function GoodsPage() {
   // Calculate gross price whenever quantity or selling price changes
   const calculateGrossPrice = (): number => {
     const quantity = formData.quantity ?? 0;
-    const sellingPrice = formData.price ?? 0;
+    const sellingPrice = formData.sellingPrice ?? 0;
     return quantity * sellingPrice;
   };
 
   const getStatusBadge = useCallback((product: Product) => {
-    const halfProducts = product.quantity > product.minStockLevel;
+    const halfProducts = product.quantity > minStockLevel;
     if (product.quantity === 0) {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
           Out of Stock
         </span>
       );
-    } else if (product.quantity <= product.minStockLevel) {
+    } else if (product.quantity <= minStockLevel) {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
           Low Stock
@@ -512,13 +208,13 @@ export default function GoodsPage() {
   // Calculate summary stats
 
   const summaryStats = useMemo(() => {
-    const totalProducts = products.length;
-    const lowStockProducts = products.filter(
-      (p) => p.quantity > 0 && p.quantity <= p.minStockLevel
+    const totalProducts = goodsData.length;
+    const lowStockProducts = goodsData.filter(
+      (p) => p.quantity > 0 && p.quantity <= minStockLevel
     ).length;
-    const outOfStockProducts = products.filter((p) => p.quantity === 0).length;
-    const totalValue = products.reduce(
-      (sum, p) => sum + p.price * p.quantity,
+    const outOfStockProducts = goodsData.filter((p) => p.quantity === 0).length;
+    const totalValue = goodsData.reduce(
+      (sum, p) => sum + p.sellingPrice * p.quantity,
       0
     );
 
@@ -528,7 +224,7 @@ export default function GoodsPage() {
       outOfStockProducts,
       totalValue,
     };
-  }, [products]);
+  }, []);
 
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -542,34 +238,65 @@ export default function GoodsPage() {
   const columns = useMemo<ColumnDef<Product>[]>(
     () => [
       {
-        accessorKey: "sku",
-        header: "Product ID",
-        // cell: ({ getValue }) => (
-        //   <span className="text-sm">#{getValue() as string}</span>
-        // ),
+        accessorKey: "name",
+        header: "Name",
+        cell: ({ getValue }) => (
+          <span className="font-medium">{(getValue() as string) || "-"}</span>
+        ),
       },
-      { accessorKey: "name", header: "Name" },
-      { accessorKey: "costPrice", header: "Cost Price" },
       {
-        accessorKey: "price",
-        header: "Selling Price",
+        accessorKey: "buyingPrice",
+        header: "Cost Price",
+        cell: ({ getValue }) => (
+          <span className="">${((getValue() as number) || 0).toFixed(2)}</span>
+        ),
       },
-      { accessorKey: "quantity", header: "Quantity" },
-      { accessorKey: "stockLevel", header: "Stock Level" },
+      {
+        accessorKey: "sellingPrice",
+        header: "Selling Price",
+        cell: ({ getValue }) => (
+          <span className="">${((getValue() as number) || 0).toFixed(2)}</span>
+        ),
+      },
+      {
+        accessorKey: "quantity",
+        header: "Quantity",
+        cell: ({ getValue }) => (
+          <span className="">{(getValue() as number) || 0}</span>
+        ),
+      },
+      {
+        accessorKey: "stockLevel",
+        header: "Stock Level",
+        cell: ({ row }) => getStatusBadge(row.original),
+      },
     ],
-    []
+    [getStatusBadge]
   );
 
   const table = useReactTable<Product>({
-    data: filteredProducts,
+    data: goodsData,
     columns,
     getCoreRowModel: getCoreRowModel(),
   });
 
   const goodsTable = useMemo(() => {
+    if (loading) {
+      return (
+        <div className="text-center py-12">
+          <span className="text-gray-400 dark:text-gray-500 mb-4 block">
+            <Package className="w-12 h-12 mx-auto animate-pulse" />
+          </span>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            Loading products...
+          </h3>
+        </div>
+      );
+    }
+
     return (
       <div className="relative overflow-x-auto rounded-lg ">
-        {filteredProducts.length === 0 ? (
+        {goodsData.length === 0 ? (
           <div className="text-center py-12">
             <span className="text-gray-400 dark:text-gray-500 mb-4 block">
               <Package className="w-12 h-12 mx-auto" />
@@ -630,7 +357,7 @@ export default function GoodsPage() {
         )}
       </div>
     );
-  }, [table, filteredProducts, getStatusBadge]);
+  }, [table, getStatusBadge, loading]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
@@ -654,7 +381,7 @@ export default function GoodsPage() {
                   Total Products
                 </p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {summaryStats.totalProducts}
+                  {loading ? "..." : summaryStats.totalProducts}
                 </p>
               </div>
             </div>
@@ -667,7 +394,7 @@ export default function GoodsPage() {
                   Low Stock
                 </p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {summaryStats.lowStockProducts}
+                  {loading ? "..." : summaryStats.lowStockProducts}
                 </p>
               </div>
             </div>
@@ -680,7 +407,7 @@ export default function GoodsPage() {
                   Out of Stock
                 </p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {summaryStats.outOfStockProducts}
+                  {loading ? "..." : summaryStats.outOfStockProducts}
                 </p>
               </div>
             </div>
@@ -693,7 +420,9 @@ export default function GoodsPage() {
                   Total Value
                 </p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  ${summaryStats.totalValue.toLocaleString()}
+                  {loading
+                    ? "..."
+                    : `$${summaryStats.totalValue.toLocaleString()}`}
                 </p>
               </div>
             </div>
@@ -727,20 +456,6 @@ export default function GoodsPage() {
                     {category.name}
                   </option>
                 ))}
-              </select>
-
-              {/* Status Filter */}
-              <select
-                value={statusFilter}
-                onChange={(e) =>
-                  setStatusFilter(e.target.value as StatusFilter)
-                }
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-              >
-                <option value="all">All Status</option>
-                <option value="high-stock">High Stock</option>
-                <option value="low-stock">Low Stock</option>
-                <option value="out-of-stock">Out of Stock</option>
               </select>
             </div>
           </div>
@@ -798,14 +513,6 @@ export default function GoodsPage() {
                     <div className="space-y-3">
                       <div className="flex justify-between">
                         <span className="text-gray-600 dark:text-gray-400">
-                          SKU:
-                        </span>
-                        <span className="text-gray-900 dark:text-white">
-                          {selectedProduct.sku}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">
                           Category:
                         </span>
                         <span className="text-gray-900 dark:text-white">
@@ -817,22 +524,6 @@ export default function GoodsPage() {
                           Status:
                         </span>
                         {getStatusBadge(selectedProduct)}
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">
-                          Supplier:
-                        </span>
-                        <span className="text-gray-900 dark:text-white">
-                          {selectedProduct.supplier}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">
-                          Location:
-                        </span>
-                        <span className="text-gray-900 dark:text-white">
-                          {selectedProduct.location}
-                        </span>
                       </div>
                     </div>
                   </div>
@@ -855,7 +546,7 @@ export default function GoodsPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                         <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                          ${selectedProduct.price}
+                          ${selectedProduct.sellingPrice}
                         </div>
                         <div className="text-sm text-gray-600 dark:text-gray-400">
                           Selling Price
@@ -863,7 +554,7 @@ export default function GoodsPage() {
                       </div>
                       <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                         <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                          ${selectedProduct.costPrice}
+                          ${selectedProduct.buyingPrice}
                         </div>
                         <div className="text-sm text-gray-600 dark:text-gray-400">
                           Cost Price
@@ -880,8 +571,8 @@ export default function GoodsPage() {
                       <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                         <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                           {getProfitMargin(
-                            selectedProduct.price,
-                            selectedProduct.costPrice
+                            selectedProduct.sellingPrice,
+                            selectedProduct.buyingPrice
                           )}
                           %
                         </div>
@@ -901,7 +592,7 @@ export default function GoodsPage() {
                         <span className="text-gray-900 dark:text-white">
                           $
                           {getTotalValue(
-                            selectedProduct.price,
+                            selectedProduct.sellingPrice,
                             selectedProduct.quantity
                           )}
                         </span>
@@ -955,24 +646,7 @@ export default function GoodsPage() {
                       placeholder="Enter product name"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      SKU *
-                    </label>
-                    <div className="flex">
-                      <input
-                        type="text"
-                        value={formData.sku || ""}
-                        onChange={(e) =>
-                          handleInputChange("sku", e.target.value)
-                        }
-                        readOnly
-                        className={`flex-1 px-3 py-2 border rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white 
-                            border-gray-300 dark:border-gray-600`}
-                        placeholder="Enter SKU"
-                      />
-                    </div>
-                  </div>
+
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Description
@@ -1026,7 +700,7 @@ export default function GoodsPage() {
                         type="number"
                         step="0.01"
                         min="0"
-                        value={formData.price || ""}
+                        value={formData.sellingPrice || ""}
                         onChange={(e) =>
                           handleInputChange(
                             "sellingPrice",
@@ -1048,10 +722,10 @@ export default function GoodsPage() {
                         type="number"
                         step="0.01"
                         min="0"
-                        value={formData.costPrice || ""}
+                        value={formData.buyingPrice || ""}
                         onChange={(e) =>
                           handleInputChange(
-                            "costPrice",
+                            "buyingPrice",
                             parseFloat(e.target.value) || 0
                           )
                         }
@@ -1102,35 +776,6 @@ export default function GoodsPage() {
                         className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white cursor-not-allowed"
                       />
                     </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Supplier */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                  <Truck className="w-5 h-5 mr-2" />
-                  Supplier Information
-                </h3>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Supplier
-                    </label>
-                    <select
-                      value={formData.supplier || ""}
-                      onChange={(e) =>
-                        handleInputChange("supplier", e.target.value)
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    >
-                      <option value="">Select supplier</option>
-                      {vendors.map((vendor) => (
-                        <option key={vendor.id} value={vendor.id}>
-                          {vendor.name}
-                        </option>
-                      ))}
-                    </select>
                   </div>
                 </div>
               </div>
