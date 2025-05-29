@@ -15,7 +15,7 @@ import {
   ColumnDef,
   useReactTable,
   getCoreRowModel,
-  flexRender,
+  // flexRender,
 } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { MdDelete } from "react-icons/md";
@@ -24,7 +24,7 @@ import { FaEdit } from "react-icons/fa";
 interface Product {
   id: string;
   name: string;
-  category: string; // This represents the category ID
+  categoryId: string; // This represents the category ID
   description: string;
   sellingPrice: number;
   buyingPrice: number;
@@ -36,6 +36,13 @@ interface Product {
 interface Category {
   id: string;
   name: string;
+}
+
+interface GroupedProducts {
+  [categoryId: string]: {
+    category: Category;
+    products: Product[];
+  };
 }
 
 type StatusFilter = "all" | "high-stock" | "low-stock" | "out-of-stock";
@@ -60,9 +67,12 @@ export default function GoodsPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [categoriesData, setCategoriesData] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [groupedProducts, setGroupedProducts] = useState<GroupedProducts>({});
 
   useEffect(() => {
-    Promise.all([fetchCategoriesData(), fetchProductsData()]);
+    Promise.all([fetchCategoriesData(), fetchProductsData()]).then(() => {
+      groupProductsByCategory();
+    });
   }, []);
 
   const fetchCategoriesData = async () => {
@@ -77,7 +87,7 @@ export default function GoodsPage() {
       if (result.data && result.data.length > 0) {
         setCategoryFilter(String(result.data[0].id));
       }
-      console.log("categories", result.data);
+      // console.log("categories", result.data);
     } catch (err) {
       console.error("Error fetching categories", err);
     } finally {
@@ -97,13 +107,17 @@ export default function GoodsPage() {
       if (result.data && Array.isArray(result.data)) {
         goodsData = result.data;
         console.log("Updated goodsData:", goodsData);
+        // Trigger regrouping after data is updated
+        groupProductsByCategory();
       } else {
         console.error("Invalid data format received:", result);
         goodsData = [];
+        setGroupedProducts({});
       }
     } catch (err) {
       console.error("Error fetching products:", err);
       goodsData = [];
+      setGroupedProducts({});
     } finally {
       setLoading(false);
     }
@@ -121,9 +135,30 @@ export default function GoodsPage() {
     setShowModal(false);
   };
 
-  const handleDeleteProduct = (product: Product) => {
-    setProductToDelete(product);
-    // setShowDeleteModal(true);
+  const handleDeleteProduct = async (product: Product) => {
+    try {
+      const response = await fetch(`/api/goods/${product.id}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Remove the deleted product from the local state
+      goodsData = goodsData.filter((p) => p.id !== product.id);
+      // Refresh the grouped products
+      groupProductsByCategory();
+
+      // Show success message or handle UI feedback
+      console.log("Product deleted successfully");
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      // Handle error (show error message to user)
+    }
   };
 
   const confirmDelete = () => {
@@ -172,6 +207,60 @@ export default function GoodsPage() {
     const sellingPrice = formData.sellingPrice ?? 0;
     return quantity * sellingPrice;
   };
+
+  const groupProductsByCategory = useCallback(() => {
+    console.log("Grouping products...");
+    console.log("goodsData:", goodsData);
+    console.log("categoriesData:", categoriesData);
+
+    if (goodsData.length === 0 || categoriesData.length === 0) {
+      console.log(
+        "No data to group - goodsData length:",
+        goodsData.length,
+        "categoriesData length:",
+        categoriesData.length
+      );
+      setGroupedProducts({});
+      return;
+    }
+
+    const grouped: GroupedProducts = {};
+
+    // Initialize groups for all categories
+    categoriesData.forEach((category) => {
+      grouped[category.id] = {
+        category,
+        products: [],
+      };
+    });
+
+    // Group products by their category ID
+    goodsData.forEach((product) => {
+      console.log(
+        "Processing product:",
+        product.name,
+        "with category ID:",
+        product.categoryId
+      );
+      if (grouped[product.categoryId]) {
+        grouped[product.categoryId].products.push(product);
+      } else {
+        console.warn(
+          "Category not found for product:",
+          product.name,
+          "category ID:",
+          product.categoryId
+        );
+      }
+    });
+
+    console.log("Final grouped products:", grouped);
+    setGroupedProducts(grouped);
+  }, [categoriesData]);
+
+  useEffect(() => {
+    groupProductsByCategory();
+  }, [goodsData, categoriesData, groupProductsByCategory]);
 
   const getStatusBadge = useCallback((product: Product) => {
     const halfProducts = product.quantity > minStockLevel;
@@ -224,7 +313,7 @@ export default function GoodsPage() {
       outOfStockProducts,
       totalValue,
     };
-  }, []);
+  }, [goodsData]);
 
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -234,6 +323,93 @@ export default function GoodsPage() {
     },
     []
   );
+
+  const filteredGroupedProducts = useMemo(() => {
+    if (Object.keys(groupedProducts).length === 0) {
+      return {};
+    }
+
+    const filtered: GroupedProducts = {};
+
+    // If a category filter is selected, only process that category
+    if (categoryFilter) {
+      const categoryData = groupedProducts[categoryFilter];
+      if (categoryData) {
+        const filteredProducts = categoryData.products.filter((product) => {
+          const matchesSearch =
+            searchTerm === "" ||
+            product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            product.description
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase());
+
+          let matchesStatus = true;
+          if (statusFilter !== "all") {
+            switch (statusFilter) {
+              case "high-stock":
+                matchesStatus = product.quantity > minStockLevel;
+                break;
+              case "low-stock":
+                matchesStatus =
+                  product.quantity > 0 && product.quantity <= minStockLevel;
+                break;
+              case "out-of-stock":
+                matchesStatus = product.quantity === 0;
+                break;
+            }
+          }
+
+          return matchesSearch && matchesStatus;
+        });
+
+        if (filteredProducts.length > 0) {
+          filtered[categoryFilter] = {
+            category: categoryData.category,
+            products: filteredProducts,
+          };
+        }
+      }
+    } else {
+      // If no category filter, process all categories
+      Object.entries(groupedProducts).forEach(([categoryId, categoryData]) => {
+        const filteredProducts = categoryData.products.filter((product) => {
+          const matchesSearch =
+            searchTerm === "" ||
+            product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            product.description
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase());
+
+          let matchesStatus = true;
+          if (statusFilter !== "all") {
+            switch (statusFilter) {
+              case "high-stock":
+                matchesStatus = product.quantity > minStockLevel;
+                break;
+              case "low-stock":
+                matchesStatus =
+                  product.quantity > 0 && product.quantity <= minStockLevel;
+                break;
+              case "out-of-stock":
+                matchesStatus = product.quantity === 0;
+                break;
+            }
+          }
+
+          return matchesSearch && matchesStatus;
+        });
+
+        if (filteredProducts.length > 0) {
+          filtered[categoryId] = {
+            category: categoryData.category,
+            products: filteredProducts,
+          };
+        }
+      });
+    }
+
+    return filtered;
+  }, [groupedProducts, searchTerm, categoryFilter, statusFilter]);
 
   const columns = useMemo<ColumnDef<Product>[]>(
     () => [
@@ -280,13 +456,11 @@ export default function GoodsPage() {
     getCoreRowModel: getCoreRowModel(),
   });
 
-  const goodsTable = useMemo(() => {
+  const renderGroupedProducts = () => {
     if (loading) {
       return (
         <div className="text-center py-12">
-          <span className="text-gray-400 dark:text-gray-500 mb-4 block">
-            <Package className="w-12 h-12 mx-auto animate-pulse" />
-          </span>
+          <Package className="w-12 h-12 mx-auto animate-pulse" />
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
             Loading products...
           </h3>
@@ -294,70 +468,146 @@ export default function GoodsPage() {
       );
     }
 
-    return (
-      <div className="relative overflow-x-auto rounded-lg ">
-        {goodsData.length === 0 ? (
-          <div className="text-center py-12">
-            <span className="text-gray-400 dark:text-gray-500 mb-4 block">
-              <Package className="w-12 h-12 mx-auto" />
-            </span>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-              No products found
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400">
-              Try adjusting your search criteria or add a new product.
-            </p>
-          </div>
-        ) : (
-          <table className="w-full border-collapse text-sm">
-            {/* Table Header */}
-            <thead className="bg-[#f4f3ee] text-gray-800 dark:bg-gray-800 dark:text-gray-100 font-semibold">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <th key={header.id} className="px-5 py-3">
-                      {flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
+    // If a category is selected but has no products
+    if (categoryFilter && Object.keys(filteredGroupedProducts).length === 0) {
+      const selectedCategory = categoriesData.find(
+        (cat) => cat.id === categoryFilter
+      );
+      return (
+        <div className="text-center py-12">
+          <Package className="w-12 h-12 mx-auto text-gray-400" />
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            No products found in {selectedCategory?.name || "this category"}
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400">
+            Try selecting a different category or add new products to this
+            category.
+          </p>
+        </div>
+      );
+    }
 
-            {/* Table Body */}
-            <tbody className="text-gray-700 dark:text-gray-200">
-              {table.getRowModel().rows.map((row, index) => (
-                <tr
-                  key={row.id}
-                  className={`${
-                    index % 2 === 0
-                      ? "bg-white dark:bg-gray-900"
-                      : "bg-gray-50 dark:bg-gray-800"
-                  } hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-300 text-center cursor-pointer`}
-                  onClick={() => handleViewProduct(row.original)}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-5 py-4">
-                      {cell.column.id === "stockLevel" ? (
-                        <>{getStatusBadge(row.original)}</>
-                      ) : (
-                        flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )
-                      )}
-                    </td>
+    // If no products at all
+    if (Object.keys(filteredGroupedProducts).length === 0) {
+      return (
+        <div className="text-center py-12">
+          <Package className="w-12 h-12 mx-auto" />
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            No products found
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400">
+            Try adjusting your search criteria or add a new product.
+          </p>
+        </div>
+      );
+    }
+
+    const groupedData = filteredGroupedProducts;
+
+    return (
+      <div className="space-y-8">
+        {Object.entries(groupedData).map(([categoryId, categoryData]) => (
+          <div
+            key={categoryId}
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+          >
+            {/* Category Header */}
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {categoryData.category.name}
+                </h3>
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  {categoryData.products.length} product(s)
+                </span>
+              </div>
+            </div>
+
+            {/* Products Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-sm">
+                <thead className="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Name
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Cost Price
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Selling Price
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Quantity
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Stock Level
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {categoryData.products.map((product, index) => (
+                    <tr
+                      key={product.id}
+                      className={`${
+                        index % 2 === 0
+                          ? "bg-white dark:bg-gray-800"
+                          : "bg-gray-50 dark:bg-gray-700"
+                      } hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition-colors`}
+                      onClick={() => handleViewProduct(product)}
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="font-medium text-gray-900 dark:text-white">
+                          {product.name}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
+                        ${product.buyingPrice?.toFixed(2) || "0.00"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
+                        ${product.sellingPrice?.toFixed(2) || "0.00"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
+                        {product.quantity || 0}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {getStatusBadge(product)}
+                      </td>
+                    </tr>
                   ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ))}
       </div>
     );
-  }, [table, getStatusBadge, loading]);
+  };
+
+  const handleDeleteCategory = async (categoryId: string) => {
+    try {
+      const response = await fetch("/api/goods/delete-category", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ categoryId }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Remove the deleted products from the local state
+      goodsData = goodsData.filter((p) => p.categoryId !== categoryId);
+      // Refresh the grouped products
+      groupProductsByCategory();
+
+      console.log("Category products deleted successfully");
+    } catch (error) {
+      console.error("Error deleting category products:", error);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
@@ -462,15 +712,20 @@ export default function GoodsPage() {
 
           <Button
             variant="outline"
-            className="flex items-center  gap-2 text-white hover:text-white bg-red-400 dark:bg-red-400 hover:bg-red-500 dark:hover:bg-red-500"
+            className="flex items-center gap-2 text-white hover:text-white bg-red-400 dark:bg-red-400 hover:bg-red-500 dark:hover:bg-red-500"
+            onClick={() => {
+              if (categoryFilter) {
+                handleDeleteCategory(categoryFilter);
+              }
+            }}
           >
             <MdDelete size={24} />
-            <span className="hidden md:block">Delete</span>
+            <span className="hidden md:block">Delete Category Products</span>
           </Button>
         </div>
 
         {/* Table  for goods */}
-        {goodsTable}
+        {renderGroupedProducts()}
       </div>
 
       {/* Product Detail Modal */}
@@ -516,7 +771,7 @@ export default function GoodsPage() {
                           Category:
                         </span>
                         <span className="text-gray-900 dark:text-white">
-                          {selectedProduct.category}
+                          {selectedProduct.categoryId}
                         </span>
                       </div>
                       <div className="flex justify-between">
@@ -676,9 +931,9 @@ export default function GoodsPage() {
                       Category *
                     </label>
                     <select
-                      value={formData.category || ""}
+                      value={formData.categoryId || ""}
                       onChange={(e) => {
-                        handleInputChange("category", e.target.value);
+                        handleInputChange("categoryId", e.target.value);
                       }}
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600`}
                     >
