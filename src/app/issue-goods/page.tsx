@@ -1,206 +1,121 @@
 "use client";
 
 import { AlertCircle, Package } from "lucide-react";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 
 interface Product {
-  id?: string;
-  productName: string;
-  sku: string;
+  id: string;
+  name: string;
+  categoryId: string;
   description: string;
-  category: string;
   sellingPrice: number;
-  costPrice: number;
+  buyingPrice: number;
   quantity: number;
-  supplier: string;
-  createdDate: number;
+  status: "active" | "inactive" | "discontinued";
   grossPrice: number;
-  price?: number; // Added to handle the price field in mockProducts
 }
 
-const mockProducts: Product[] = [
-  {
-    id: "1",
-    productName: "Wireless Bluetooth Headphones",
-    sku: "WBH-001",
-    category: "1", // Beverages
-    description: "Premium wireless headphones with noise cancellation",
-    price: 199.99,
-    sellingPrice: 199.99,
-    costPrice: 120.0,
-    quantity: 45,
-    supplier: "TechCorp Solutions",
-    createdDate: Date.now(),
-    grossPrice: 199.99,
-  },
-  {
-    id: "2",
-    productName: "Gaming Mechanical Keyboard",
-    sku: "GMK-002",
-    category: "12", // Other
-    description: "RGB mechanical keyboard with cherry MX switches",
-    price: 149.99,
-    sellingPrice: 149.99,
-    costPrice: 85.0,
-    quantity: 5,
-    supplier: "Global Supplies Inc",
-    createdDate: Date.now(),
-    grossPrice: 149.99,
-  },
-  {
-    id: "3",
-    productName: "Office Chair Ergonomic",
-    sku: "OCE-003",
-    category: "12",
-    description: "Comfortable ergonomic office chair with lumbar support",
-    price: 299.99,
-    sellingPrice: 299.99,
-    costPrice: 180.0,
-    quantity: 12,
-    supplier: "Prime Electronics",
-    createdDate: Date.now(),
-    grossPrice: 299.99,
-  },
-  {
-    id: "4",
-    productName: "USB-C Cable 2m",
-    sku: "USC-004",
-    category: "2", // Bread/Bakery
-    description: "High-speed USB-C charging and data cable",
-    price: 24.99,
-    sellingPrice: 24.99,
-    costPrice: 8.5,
-    quantity: 0,
-    supplier: "TechCorp Solutions",
-    createdDate: Date.now(),
-    grossPrice: 24.99,
-  },
-  {
-    id: "5",
-    productName: "Vintage Desk Lamp",
-    sku: "VDL-005",
-    category: "12",
-    description: "Retro-style desk lamp with adjustable arm",
-    price: 89.99,
-    sellingPrice: 89.99,
-    costPrice: 45.0,
-    quantity: 8,
-    supplier: "Global Supplies Inc",
-    createdDate: Date.now(),
-    grossPrice: 89.99,
-  },
-  {
-    id: "6",
-    productName: "Almond Milk - 1L",
-    sku: "DML-006",
-    category: "4", // Dairy
-    description: "Organic almond milk with no added sugar",
-    price: 3.99,
-    sellingPrice: 3.99,
-    costPrice: 2.2,
-    quantity: 35,
-    supplier: "Green Farms Ltd.",
-    createdDate: Date.now(),
-    grossPrice: 3.99,
-  },
-  {
-    id: "7",
-    productName: "Canned Tuna - 200g",
-    sku: "CTN-007",
-    category: "3", // Canned/Jarred Goods
-    description: "Premium tuna chunks in olive oil",
-    price: 2.49,
-    sellingPrice: 2.49,
-    costPrice: 1.2,
-    quantity: 80,
-    supplier: "Ocean Foods",
-    createdDate: Date.now(),
-    grossPrice: 2.49,
-  },
-  {
-    id: "8",
-    productName: "All-Purpose Flour - 2kg",
-    sku: "APF-008",
-    category: "5", // Dry/Baking Goods
-    description: "Fine milled wheat flour for baking and cooking",
-    price: 5.99,
-    sellingPrice: 5.99,
-    costPrice: 3.0,
-    quantity: 120,
-    supplier: "Bakers Choice",
-    createdDate: Date.now(),
-    grossPrice: 5.99,
-  },
-];
+interface Category {
+  id: string;
+  name: string;
+}
 
-const categories = [
-  { id: "1", name: "Beverages" },
-  { id: "2", name: "Bread/Bakery" },
-  { id: "3", name: "Canned/Jarred Goods" },
-  { id: "4", name: "Dairy" },
-  { id: "5", name: "Dry/Baking Goods" },
-  { id: "6", name: "Frozen Foods" },
-  { id: "7", name: "Meat" },
-  { id: "8", name: "Produce" },
-  { id: "9", name: "Cleaners" },
-  { id: "10", name: "Paper Goods" },
-  { id: "11", name: "Personal Care" },
-  { id: "12", name: "Other" },
-];
+interface Vendor {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  contactPerson: string;
+}
 
 const Page = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
   const [formData, setFormData] = useState<{
-    category: string;
+    categoryId: string;
     productId: string;
     quantity: number;
-    price: number;
+    sellingPrice: number;
+    vendorId: string;
+    grossPrice: number;
   }>({
-    category: "",
+    categoryId: "",
     productId: "",
     quantity: 0,
-    price: 0,
+    sellingPrice: 0,
+    vendorId: "",
+    grossPrice: 0,
   });
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch categories
+        const categoriesResponse = await fetch("/api/categories");
+        if (!categoriesResponse.ok) {
+          throw new Error("Failed to fetch categories");
+        }
+        const categoriesData = await categoriesResponse.json();
+        setCategories(categoriesData.data);
+
+        // Fetch products
+        const productsResponse = await fetch("/api/goods");
+        if (!productsResponse.ok) {
+          throw new Error("Failed to fetch products");
+        }
+        const productsData = await productsResponse.json();
+        setProducts(productsData.data);
+
+        // Fetch vendors
+        const vendorsResponse = await fetch("/api/vendors");
+        if (!vendorsResponse.ok) {
+          throw new Error("Failed to fetch vendors");
+        }
+        const vendorsData = await vendorsResponse.json();
+        setVendors(vendorsData.data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   // Filter products based on selected category
   const filteredProducts = useMemo(() => {
-    if (!formData.category) return [];
-    return mockProducts.filter(
-      (product) => product.category === formData.category
+    if (!formData.categoryId) return [];
+    return products.filter(
+      (product) => product.categoryId === formData.categoryId
     );
-  }, [formData.category]);
+  }, [formData.categoryId, products]);
 
   // Get selected product details
   const selectedProduct = useMemo(() => {
     if (!formData.productId) return null;
     return (
-      mockProducts.find((product) => product.id === formData.productId) || null
+      products.find((product) => product.id === formData.productId) || null
     );
-  }, [formData.productId]);
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.category) {
-      newErrors.category = "Category is required";
-    }
-    if (!formData.productId) {
-      newErrors.productId = "Product is required";
-    }
-    if (formData.quantity <= 0) {
-      newErrors.quantity = "Quantity must be greater than 0";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  }, [formData.productId, products]);
 
   const handleCategoryChange = (categoryId: string) => {
     setFormData((prev) => ({
       ...prev,
-      category: categoryId,
+      categoryId: categoryId,
       productId: "", // Reset product selection when category changes
-      price: 0, // Reset price
+      sellingPrice: 0, // Reset price
     }));
 
     // Clear errors
@@ -210,11 +125,12 @@ const Page = () => {
   };
 
   const handleProductChange = (productId: string) => {
-    const product = mockProducts.find((p) => p.id === productId);
+    const product = products.find((p) => p.id === productId);
     setFormData((prev) => ({
       ...prev,
       productId,
-      price: product ? product.price || product.sellingPrice : 0,
+      sellingPrice: product ? product.sellingPrice : 0,
+      grossPrice: product ? product.sellingPrice * prev.quantity : 0,
     }));
 
     // Clear errors
@@ -223,10 +139,29 @@ const Page = () => {
     }
   };
 
-  const handleQuantityChange = (quantity: string) => {
+  const handleVendorChange = (vendorId: string) => {
     setFormData((prev) => ({
       ...prev,
-      quantity: parseInt(quantity) || 0,
+      vendorId,
+    }));
+
+    // Clear errors
+    if (errors.vendorId) {
+      setErrors((prev) => ({ ...prev, vendorId: "" }));
+    }
+  };
+
+  const handleQuantityChange = (quantity: string) => {
+    const newQuantity = parseInt(quantity) || 0;
+    const maxQuantity = selectedProduct?.quantity || 0;
+
+    // Ensure the quantity doesn't exceed available stock
+    const validQuantity = Math.min(newQuantity, maxQuantity);
+
+    setFormData((prev) => ({
+      ...prev,
+      quantity: validQuantity,
+      grossPrice: validQuantity * prev.sellingPrice,
     }));
 
     // Clear errors
@@ -235,8 +170,71 @@ const Page = () => {
     }
   };
 
+  const handleCancel = () => {
+    setFormData({
+      categoryId: "",
+      productId: "",
+      quantity: 0,
+      sellingPrice: 0,
+      vendorId: "",
+      grossPrice: 0,
+    });
+    setErrors({});
+  };
+
+  const handleIssueGoods = async () => {
+    try {
+      const response = await fetch("/api/issue-goods", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to issue goods");
+      }
+
+      const data = await response.json();
+      console.log("Issue Goods Response:", data);
+
+      // Reset form after successful submission
+      handleCancel();
+
+      // Show success message (you can implement this based on your UI needs)
+      alert("Goods issued successfully!");
+    } catch (error) {
+      console.error("Error issuing goods:", error);
+      alert(error instanceof Error ? error.message : "Failed to issue goods");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <Package className="w-12 h-12 mx-auto animate-pulse text-blue-500" />
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 mx-auto text-red-500" />
+          <p className="mt-4 text-red-600 dark:text-red-400">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-gray-50 dark:bg-gray-900 transition-colors duration-200 md:pb-4">
+    <div className="bg-gray-50 dark:bg-gray-900 transition-colors duration-200 md:pb-4 min-h-screen">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -261,7 +259,7 @@ const Page = () => {
                     Category *
                   </label>
                   <select
-                    value={formData.category}
+                    value={formData.categoryId}
                     onChange={(e) => handleCategoryChange(e.target.value)}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
                       errors.category
@@ -291,7 +289,7 @@ const Page = () => {
                   <select
                     value={formData.productId}
                     onChange={(e) => handleProductChange(e.target.value)}
-                    disabled={!formData.category}
+                    disabled={!formData.categoryId}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:cursor-not-allowed ${
                       errors.productId
                         ? "border-red-500 dark:border-red-400"
@@ -299,13 +297,13 @@ const Page = () => {
                     }`}
                   >
                     <option value="">
-                      {formData.category
+                      {formData.categoryId
                         ? "Select Product"
                         : "Select category first"}
                     </option>
                     {filteredProducts.map((product) => (
                       <option key={product.id} value={product.id}>
-                        {product.productName} (Stock: {product.quantity})
+                        {product.name} (Stock: {product.quantity})
                       </option>
                     ))}
                   </select>
@@ -319,12 +317,40 @@ const Page = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Vendor *
+                  </label>
+                  <select
+                    value={formData.vendorId}
+                    onChange={(e) => handleVendorChange(e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
+                      errors.vendorId
+                        ? "border-red-500 dark:border-red-400"
+                        : "border-gray-300 dark:border-gray-600"
+                    }`}
+                  >
+                    <option value="">Select vendor</option>
+                    {vendors.map((vendor) => (
+                      <option key={vendor.id} value={vendor.id}>
+                        {vendor.name}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.vendorId && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center">
+                      <AlertCircle className="w-4 h-4 mr-1" />
+                      {errors.vendorId}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Quantity *
                   </label>
                   <input
                     type="number"
                     min="1"
-                    max={selectedProduct?.quantity}
+                    max={selectedProduct?.quantity || 0}
                     value={formData.quantity || ""}
                     onChange={(e) => handleQuantityChange(e.target.value)}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
@@ -336,7 +362,7 @@ const Page = () => {
                   />
                   {selectedProduct && (
                     <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      Available: {selectedProduct.quantity}
+                      Available: {selectedProduct.quantity} units
                     </p>
                   )}
                   {errors.quantity && (
@@ -353,13 +379,29 @@ const Page = () => {
                   </label>
                   <input
                     type="number"
-                    value={formData.price.toFixed(2)}
+                    value={formData.sellingPrice.toFixed(2)}
                     readOnly
                     disabled
                     className="w-full px-3 py-2 border rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 cursor-not-allowed"
                   />
                   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                     Auto-filled from product
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Total Value
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.grossPrice.toFixed(2)}
+                    readOnly
+                    disabled
+                    className="w-full px-3 py-2 border rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 cursor-not-allowed"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Calculated (Price × Quantity)
                   </p>
                 </div>
               </div>
@@ -369,31 +411,80 @@ const Page = () => {
                   <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
                     Selected Product Details
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                     <div>
                       <span className="font-medium text-blue-800 dark:text-blue-200">
-                        SKU:
+                        Product Name:
                       </span>
                       <span className="ml-2 text-blue-700 dark:text-blue-300">
-                        {selectedProduct.sku}
+                        {selectedProduct.name}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="font-medium text-blue-800 dark:text-blue-200">
+                        Quantity:
+                      </span>
+                      <span className="ml-2 text-blue-700 dark:text-blue-300">
+                        {formData.quantity} units
                       </span>
                     </div>
                     <div>
                       <span className="font-medium text-blue-800 dark:text-blue-200">
-                        Supplier:
+                        Unit Price:
                       </span>
                       <span className="ml-2 text-blue-700 dark:text-blue-300">
-                        {selectedProduct.supplier}
+                        ${selectedProduct.sellingPrice.toFixed(2)}
                       </span>
                     </div>
-                    <div>
-                      <span className="font-medium text-blue-800 dark:text-blue-200">
-                        Total Value:
-                      </span>
-                      <span className="ml-2 text-blue-700 dark:text-blue-300">
-                        ${(formData.price * formData.quantity).toFixed(2)}
-                      </span>
-                    </div>
+
+                    {formData.vendorId && (
+                      <>
+                        <div>
+                          <span className="font-medium text-blue-800 dark:text-blue-200">
+                            Selected Vendor:
+                          </span>
+                          <span className="ml-2 text-blue-700 dark:text-blue-300">
+                            {
+                              vendors.find((v) => v.id === formData.vendorId)
+                                ?.name
+                            }
+                          </span>
+                        </div>
+                        <div>
+                          <span className="font-medium text-blue-800 dark:text-blue-200">
+                            Contact Person:
+                          </span>
+                          <span className="ml-2 text-blue-700 dark:text-blue-300">
+                            {
+                              vendors.find((v) => v.id === formData.vendorId)
+                                ?.contactPerson
+                            }
+                          </span>
+                        </div>
+                        <div>
+                          <span className="font-medium text-blue-800 dark:text-blue-200">
+                            Vendor Contact:
+                          </span>
+                          <span className="ml-2 text-blue-700 dark:text-blue-300">
+                            {
+                              vendors.find((v) => v.id === formData.vendorId)
+                                ?.phone
+                            }
+                          </span>
+                        </div>
+                      </>
+                    )}
+                    {formData.quantity > 0 && (
+                      <div>
+                        <span className="font-medium text-blue-800 dark:text-blue-200">
+                          Total Value:
+                        </span>
+                        <span className="ml-2 text-blue-700 dark:text-blue-300">
+                          ${formData.grossPrice.toFixed(2)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -402,21 +493,14 @@ const Page = () => {
             <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
               <button
                 type="button"
+                onClick={handleCancel}
                 className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  if (validateForm()) {
-                    alert(
-                      `Form is valid! Issuing ${formData.quantity} units of ${
-                        selectedProduct?.productName
-                      } for $${(formData.price * formData.quantity).toFixed(2)}`
-                    );
-                  }
-                }}
+                onClick={handleIssueGoods}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
               >
                 Issue Goods
