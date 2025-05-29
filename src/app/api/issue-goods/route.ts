@@ -6,7 +6,7 @@ const baseUrl =
 
 export async function GET() {
   try {
-    const response = await fetch(`${baseUrl}/issue-goods`);
+    const response = await fetch(`${baseUrl}/issue-item`);
 
     if (!response.ok) {
       throw new Error("Failed to fetch goods");
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       "quantity",
       "categoryId",
       "sellingPrice",
-      "grossPrice",
+      "totalPrice",
       "vendorId",
     ];
     const missingFields = requiredFields.filter((field) => !body[field]);
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const response = await fetch(`${baseUrl}/issue-goods`, {
+    const response = await fetch(`${baseUrl}/issue-item`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

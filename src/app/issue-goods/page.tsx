@@ -2,6 +2,7 @@
 
 import { AlertCircle, Package } from "lucide-react";
 import React, { useState, useMemo, useEffect } from "react";
+import { toast } from "react-toastify";
 
 interface Product {
   id: string;
@@ -12,7 +13,7 @@ interface Product {
   buyingPrice: number;
   quantity: number;
   status: "active" | "inactive" | "discontinued";
-  grossPrice: number;
+  totalPrice: number;
 }
 
 interface Category {
@@ -39,20 +40,21 @@ const Page = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [issueLoading, setIssueLoading] = useState(false);
   const [formData, setFormData] = useState<{
     categoryId: string;
     productId: string;
     quantity: number;
     sellingPrice: number;
     vendorId: string;
-    grossPrice: number;
+    totalPrice: number;
   }>({
     categoryId: "",
     productId: "",
     quantity: 0,
     sellingPrice: 0,
     vendorId: "",
-    grossPrice: 0,
+    totalPrice: 0,
   });
 
   useEffect(() => {
@@ -68,6 +70,7 @@ const Page = () => {
         }
         const categoriesData = await categoriesResponse.json();
         setCategories(categoriesData.data);
+        console.log("Categories Data loaded:", categoriesData.data);
 
         // Fetch products
         const productsResponse = await fetch("/api/goods");
@@ -75,7 +78,16 @@ const Page = () => {
           throw new Error("Failed to fetch products");
         }
         const productsData = await productsResponse.json();
-        setProducts(productsData.data);
+        console.log("Raw Products API Response:", productsData);
+
+        // Ensure products have categoryId
+        const processedProducts = productsData.data.map((product: Product) => ({
+          ...product,
+          categoryId: product.categoryId || null,
+        }));
+
+        console.log("Processed Products:", processedProducts);
+        setProducts(processedProducts);
 
         // Fetch vendors
         const vendorsResponse = await fetch("/api/vendors");
@@ -85,6 +97,7 @@ const Page = () => {
         const vendorsData = await vendorsResponse.json();
         setVendors(vendorsData.data);
       } catch (err) {
+        console.error("Error fetching data:", err);
         setError(err instanceof Error ? err.message : "An error occurred");
       } finally {
         setLoading(false);
@@ -96,10 +109,32 @@ const Page = () => {
 
   // Filter products based on selected category
   const filteredProducts = useMemo(() => {
+    console.log("Filtering products. CategoryId:", formData.categoryId);
+    console.log("All products:", products);
+
     if (!formData.categoryId) return [];
-    return products.filter(
-      (product) => product.categoryId === formData.categoryId
-    );
+
+    // Log the first product's categoryId for debugging
+    if (products.length > 0) {
+      console.log("First product:", products[0]);
+      console.log("First product categoryId:", products[0].categoryId);
+      console.log(
+        "First product categoryId type:",
+        typeof products[0].categoryId
+      );
+      console.log("Selected categoryId type:", typeof formData.categoryId);
+    }
+
+    const filtered = products.filter((product) => {
+      const matches = product.categoryId === formData.categoryId;
+      console.log(
+        `Product ${product.name}: categoryId=${product.categoryId}, matches=${matches}`
+      );
+      return matches;
+    });
+
+    console.log("Filtered products:", filtered);
+    return filtered;
   }, [formData.categoryId, products]);
 
   // Get selected product details
@@ -111,6 +146,9 @@ const Page = () => {
   }, [formData.productId, products]);
 
   const handleCategoryChange = (categoryId: string) => {
+    console.log("Category changed to:", categoryId);
+    console.log("Category type:", typeof categoryId);
+
     setFormData((prev) => ({
       ...prev,
       categoryId: categoryId,
@@ -130,7 +168,7 @@ const Page = () => {
       ...prev,
       productId,
       sellingPrice: product ? product.sellingPrice : 0,
-      grossPrice: product ? product.sellingPrice * prev.quantity : 0,
+      totalPrice: product ? product.sellingPrice * prev.quantity : 0,
     }));
 
     // Clear errors
@@ -161,7 +199,7 @@ const Page = () => {
     setFormData((prev) => ({
       ...prev,
       quantity: validQuantity,
-      grossPrice: validQuantity * prev.sellingPrice,
+      totalPrice: validQuantity * prev.sellingPrice,
     }));
 
     // Clear errors
@@ -177,13 +215,14 @@ const Page = () => {
       quantity: 0,
       sellingPrice: 0,
       vendorId: "",
-      grossPrice: 0,
+      totalPrice: 0,
     });
     setErrors({});
   };
 
   const handleIssueGoods = async () => {
     try {
+      setIssueLoading(true);
       const response = await fetch("/api/issue-goods", {
         method: "POST",
         headers: {
@@ -200,14 +239,25 @@ const Page = () => {
       const data = await response.json();
       console.log("Issue Goods Response:", data);
 
+      // Refresh products data after successful submission
+      const productsResponse = await fetch("/api/goods");
+      if (!productsResponse.ok) {
+        throw new Error("Failed to refresh products");
+      }
+      const productsData = await productsResponse.json();
+      console.log("Refreshed products after issue:", productsData.data);
+      setProducts(productsData.data);
+
       // Reset form after successful submission
       handleCancel();
 
-      // Show success message (you can implement this based on your UI needs)
-      alert("Goods issued successfully!");
+      // Show success toast
+      toast.success("Goods issued successfully!");
     } catch (error) {
       console.error("Error issuing goods:", error);
-      alert(error instanceof Error ? error.message : "Failed to issue goods");
+      toast.error(error instanceof Error ? error.message : "Failed to issue goods");
+    } finally {
+      setIssueLoading(false);
     }
   };
 
@@ -395,7 +445,7 @@ const Page = () => {
                   </label>
                   <input
                     type="number"
-                    value={formData.grossPrice.toFixed(2)}
+                    value={formData.totalPrice.toFixed(2)}
                     readOnly
                     disabled
                     className="w-full px-3 py-2 border rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 cursor-not-allowed"
@@ -478,10 +528,10 @@ const Page = () => {
                     {formData.quantity > 0 && (
                       <div>
                         <span className="font-medium text-blue-800 dark:text-blue-200">
-                          Total Value:
+                          Total Price:
                         </span>
                         <span className="ml-2 text-blue-700 dark:text-blue-300">
-                          ${formData.grossPrice.toFixed(2)}
+                          ${formData.totalPrice.toFixed(2)}
                         </span>
                       </div>
                     )}
@@ -503,7 +553,7 @@ const Page = () => {
                 onClick={handleIssueGoods}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
               >
-                Issue Goods
+                {issueLoading ? "Issuing goods" : "Issue Goods"}
               </button>
             </div>
           </div>

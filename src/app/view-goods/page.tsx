@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { MdDelete } from "react-icons/md";
 import { FaEdit } from "react-icons/fa";
+import { toast } from "react-toastify";
 
 interface Product {
   id: string;
@@ -45,29 +46,23 @@ interface GroupedProducts {
   };
 }
 
-type StatusFilter = "all" | "high-stock" | "low-stock" | "out-of-stock";
-
 const minStockLevel = 10;
-const maxStockLevel = 20;
 
 let goodsData: Product[] = [];
 
 export default function GoodsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | "high-stock" | "low-stock" | "out-of-stock"
-  >("all");
+
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [formData, setFormData] = useState<Partial<Product>>({});
   const [isEditing, setIsEditing] = useState(false);
   const [categoriesData, setCategoriesData] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [groupedProducts, setGroupedProducts] = useState<GroupedProducts>({});
+  const [deleteCategoryItem, setDeleteCategoryItem] = useState(false);
 
   useEffect(() => {
     Promise.all([fetchCategoriesData(), fetchProductsData()]).then(() => {
@@ -133,40 +128,6 @@ export default function GoodsPage() {
     setSelectedProduct(product);
     setIsEditing(true);
     setShowModal(false);
-  };
-
-  const handleDeleteProduct = async (product: Product) => {
-    try {
-      const response = await fetch(`/api/goods/${product.id}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      // Remove the deleted product from the local state
-      goodsData = goodsData.filter((p) => p.id !== product.id);
-      // Refresh the grouped products
-      groupProductsByCategory();
-
-      // Show success message or handle UI feedback
-      console.log("Product deleted successfully");
-    } catch (error) {
-      console.error("Error deleting product:", error);
-      // Handle error (show error message to user)
-    }
-  };
-
-  const confirmDelete = () => {
-    if (productToDelete) {
-      goodsData = goodsData.filter((p) => p.id !== productToDelete.id);
-      setShowDeleteModal(false);
-      setProductToDelete(null);
-    }
   };
 
   const handleInputChange = (
@@ -260,7 +221,7 @@ export default function GoodsPage() {
 
   useEffect(() => {
     groupProductsByCategory();
-  }, [goodsData, categoriesData, groupProductsByCategory]);
+  }, [groupProductsByCategory]);
 
   const getStatusBadge = useCallback((product: Product) => {
     const halfProducts = product.quantity > minStockLevel;
@@ -343,23 +304,7 @@ export default function GoodsPage() {
               .toLowerCase()
               .includes(searchTerm.toLowerCase());
 
-          let matchesStatus = true;
-          if (statusFilter !== "all") {
-            switch (statusFilter) {
-              case "high-stock":
-                matchesStatus = product.quantity > minStockLevel;
-                break;
-              case "low-stock":
-                matchesStatus =
-                  product.quantity > 0 && product.quantity <= minStockLevel;
-                break;
-              case "out-of-stock":
-                matchesStatus = product.quantity === 0;
-                break;
-            }
-          }
-
-          return matchesSearch && matchesStatus;
+          return matchesSearch;
         });
 
         if (filteredProducts.length > 0) {
@@ -380,23 +325,7 @@ export default function GoodsPage() {
               .toLowerCase()
               .includes(searchTerm.toLowerCase());
 
-          let matchesStatus = true;
-          if (statusFilter !== "all") {
-            switch (statusFilter) {
-              case "high-stock":
-                matchesStatus = product.quantity > minStockLevel;
-                break;
-              case "low-stock":
-                matchesStatus =
-                  product.quantity > 0 && product.quantity <= minStockLevel;
-                break;
-              case "out-of-stock":
-                matchesStatus = product.quantity === 0;
-                break;
-            }
-          }
-
-          return matchesSearch && matchesStatus;
+          return matchesSearch;
         });
 
         if (filteredProducts.length > 0) {
@@ -409,7 +338,7 @@ export default function GoodsPage() {
     }
 
     return filtered;
-  }, [groupedProducts, searchTerm, categoryFilter, statusFilter]);
+  }, [groupedProducts, searchTerm, categoryFilter]);
 
   const columns = useMemo<ColumnDef<Product>[]>(
     () => [
@@ -586,26 +515,36 @@ export default function GoodsPage() {
 
   const handleDeleteCategory = async (categoryId: string) => {
     try {
-      const response = await fetch("/api/goods/delete-category", {
+      setDeleteCategoryItem(true);
+      const response = await fetch("/api/goods", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ categoryId }),
+        body: JSON.stringify({
+          id: categoryId,
+        }),
       });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
+      // Find the category name
+      const category = categoriesData.find((cat) => cat.id === categoryId);
+      const categoryName = category ? category.name : "Unknown Category";
+
       // Remove the deleted products from the local state
       goodsData = goodsData.filter((p) => p.categoryId !== categoryId);
-      // Refresh the grouped products
+      toast.success(`Products deleted from ${categoryName}`);
+
       groupProductsByCategory();
 
       console.log("Category products deleted successfully");
     } catch (error) {
       console.error("Error deleting category products:", error);
+    } finally {
+      setDeleteCategoryItem(false);
     }
   };
 
@@ -720,7 +659,9 @@ export default function GoodsPage() {
             }}
           >
             <MdDelete size={24} />
-            <span className="hidden md:block">Delete Category Products</span>
+            <span className="hidden md:block">
+              {deleteCategoryItem ? "Deleting" : " Delete Category Products"}
+            </span>
           </Button>
         </div>
 
@@ -766,14 +707,6 @@ export default function GoodsPage() {
                       {selectedProduct.name}
                     </h3>
                     <div className="space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">
-                          Category:
-                        </span>
-                        <span className="text-gray-900 dark:text-white">
-                          {selectedProduct.categoryId}
-                        </span>
-                      </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600 dark:text-gray-400">
                           Status:
@@ -832,7 +765,7 @@ export default function GoodsPage() {
                           %
                         </div>
                         <div className="text-sm text-gray-600 dark:text-gray-400">
-                          Profit Margin
+                          Profit Percentage/product
                         </div>
                       </div>
                     </div>

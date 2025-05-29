@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Navbar from "./Navbar";
+import { usePathname } from "next/navigation";
 
 const NavigationWrapper = () => {
   const [isSticky, setIsSticky] = useState(false);
+
+  const pathname = usePathname();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -15,6 +18,10 @@ const NavigationWrapper = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  if (pathname === "/login") {
+    return <div></div>;
+  }
 
   return (
     <>

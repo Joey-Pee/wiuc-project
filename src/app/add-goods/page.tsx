@@ -1,17 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Save,
-  // Plus,
-  X,
-  Package,
-  DollarSign,
-  Tag,
-  // Truck,
-  AlertCircle,
-} from "lucide-react";
+import { Save, X, Package, DollarSign, Tag, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "react-toastify";
 
 interface Product {
   name: string;
@@ -46,7 +38,6 @@ const AddProductPage = () => {
     grossPrice: 0,
   });
 
-  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [categoriesData, setCategoriesData] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -154,23 +145,19 @@ const AddProductPage = () => {
           },
           body: JSON.stringify(product),
         });
-        // console.log("Product>>>", product);
 
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error || "Failed to save product");
         }
 
-        // console.log("Product2>>>", product);
-
         return response.json();
       });
 
       await Promise.all(savePromises);
 
-      // Show success message
-      setShowSuccessMessage(true);
-      setTimeout(() => setShowSuccessMessage(false), 3000);
+      // Show success toast
+      toast.success("Products saved successfully!");
 
       // Reset everything
       setProducts([]);
@@ -178,7 +165,14 @@ const AddProductPage = () => {
       resetForm();
     } catch (error) {
       console.error("Error saving products:", error);
-      // You might want to show an error message to the user here
+      toast.error("Failed to save products. Please try again.", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     }
   };
 
@@ -206,22 +200,6 @@ const AddProductPage = () => {
             Create new product entries with all the necessary details
           </p>
         </div>
-
-        {/* Success Message */}
-        {showSuccessMessage && (
-          <div className="mb-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <Package className="w-5 h-5 text-green-600 dark:text-green-400" />
-              </div>
-              <div className="ml-3">
-                <p className="text-green-800 dark:text-green-200 font-medium">
-                  Products saved successfully!
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Products List */}
         {products.length > 0 && (

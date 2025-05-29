@@ -1,118 +1,36 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import { Search, Package, AlertCircle, Tag, DollarSign } from "lucide-react";
+import { Search, Package, AlertCircle, DollarSign } from "lucide-react";
 
 interface IssuedGood {
   id: string;
-  productId: string;
-  productName: string;
-  categoryId: string;
-  categoryName: string;
+  itemName: string;
   quantity: number;
-  sellingPrice: number;
-  grossPrice: number;
-  vendorId: string;
-  vendorName: string;
-  issuedAt: string;
+  totalPrice: number;
+  vendor: string;
+  createdAt: string;
 }
-
-// Mock data for development
-const mockIssuedGoods: IssuedGood[] = [
-  {
-    id: "1",
-    productId: "p1",
-    productName: "Laptop Dell XPS 13",
-    categoryId: "c1",
-    categoryName: "Electronics",
-    quantity: 5,
-    sellingPrice: 1299.99,
-    grossPrice: 6499.95,
-    vendorId: "v1",
-    vendorName: "Tech Solutions Inc.",
-    issuedAt: "2024-03-15T10:30:00Z",
-  },
-  {
-    id: "2",
-    productId: "p2",
-    productName: "Office Chair Ergonomic",
-    categoryId: "c2",
-    categoryName: "Furniture",
-    quantity: 10,
-    sellingPrice: 299.99,
-    grossPrice: 2999.9,
-    vendorId: "v2",
-    vendorName: "Office Supplies Co.",
-    issuedAt: "2024-03-14T14:15:00Z",
-  },
-  {
-    id: "3",
-    productId: "p3",
-    productName: "Wireless Mouse",
-    categoryId: "c1",
-    categoryName: "Electronics",
-    quantity: 20,
-    sellingPrice: 49.99,
-    grossPrice: 999.8,
-    vendorId: "v1",
-    vendorName: "Tech Solutions Inc.",
-    issuedAt: "2024-03-13T09:45:00Z",
-  },
-  {
-    id: "4",
-    productId: "p4",
-    productName: "Desk Lamp LED",
-    categoryId: "c2",
-    categoryName: "Furniture",
-    quantity: 15,
-    sellingPrice: 79.99,
-    grossPrice: 1199.85,
-    vendorId: "v3",
-    vendorName: "Home & Office Ltd.",
-    issuedAt: "2024-03-12T16:20:00Z",
-  },
-  {
-    id: "5",
-    productId: "p5",
-    productName: "External SSD 1TB",
-    categoryId: "c1",
-    categoryName: "Electronics",
-    quantity: 8,
-    sellingPrice: 149.99,
-    grossPrice: 1199.92,
-    vendorId: "v1",
-    vendorName: "Tech Solutions Inc.",
-    issuedAt: "2024-03-11T11:10:00Z",
-  },
-];
 
 const ViewIssuedGoodsPage = () => {
   const [issuedGoods, setIssuedGoods] = useState<IssuedGood[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<string>("");
+  // const [categoryFilter, setCategoryFilter] = useState<string>("");
 
   useEffect(() => {
-    // Simulate API call with mock data
     const fetchIssuedGoods = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // Simulate network delay
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        // Use mock data instead of actual API call
-        setIssuedGoods(mockIssuedGoods);
-
-        // Uncomment below for actual API call
-        // const response = await fetch("/api/issue-goods");
-        // if (!response.ok) {
-        //   throw new Error("Failed to fetch issued goods");
-        // }
-        // const data = await response.json();
-        // setIssuedGoods(data.data || []);
+        const response = await fetch("/api/issue-goods");
+        if (!response.ok) {
+          throw new Error("Failed to fetch issued goods");
+        }
+        const data = await response.json();
+        setIssuedGoods(data.data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");
       } finally {
@@ -127,33 +45,32 @@ const ViewIssuedGoodsPage = () => {
     return issuedGoods.filter((good) => {
       const matchesSearch =
         searchTerm === "" ||
-        good.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        good.vendorName.toLowerCase().includes(searchTerm.toLowerCase());
+        good.itemName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        good.vendor.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesCategory =
-        categoryFilter === "" || good.categoryId === categoryFilter;
+      // const matchesCategory =
+      //   categoryFilter === "" || good.categoryId === categoryFilter;
 
-      return matchesSearch && matchesCategory;
+      return matchesSearch;
     });
-  }, [issuedGoods, searchTerm, categoryFilter]);
+  }, [issuedGoods, searchTerm]);
 
   // Calculate summary stats
   const summaryStats = useMemo(() => {
     const totalIssued = issuedGoods.length;
     const totalValue = issuedGoods.reduce(
-      (sum, good) => sum + good.grossPrice,
+      (sum, good) => sum + good.totalPrice,
       0
     );
-    const uniqueVendors = new Set(issuedGoods.map((good) => good.vendorId))
-      .size;
-    const uniqueCategories = new Set(issuedGoods.map((good) => good.categoryId))
-      .size;
+    const uniqueVendors = new Set(issuedGoods.map((good) => good.vendor)).size;
+    // const uniqueCategories = new Set(issuedGoods.map((good) => good.categoryId))
+    //   .size;
 
     return {
       totalIssued,
       totalValue,
       uniqueVendors,
-      uniqueCategories,
+      // uniqueCategories,
     };
   }, [issuedGoods]);
 
@@ -219,7 +136,7 @@ const ViewIssuedGoodsPage = () => {
               </div>
             </div>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 md:p-6">
+          {/* <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 md:p-6">
             <div className="flex items-center">
               <Tag className="w-8 h-8 text-purple-600 dark:text-purple-400" />
               <div className="ml-4">
@@ -231,7 +148,7 @@ const ViewIssuedGoodsPage = () => {
                 </p>
               </div>
             </div>
-          </div>
+          </div> */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 md:p-6">
             <div className="flex items-center">
               <Package className="w-8 h-8 text-orange-600 dark:text-orange-400" />
@@ -263,7 +180,7 @@ const ViewIssuedGoodsPage = () => {
             </div>
 
             {/* Category Filter */}
-            <select
+            {/* <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
               className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
@@ -281,7 +198,7 @@ const ViewIssuedGoodsPage = () => {
                   </option>
                 );
               })}
-            </select>
+            </select> */}
           </div>
         </div>
 
@@ -294,9 +211,9 @@ const ViewIssuedGoodsPage = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Product
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Category
-                  </th>
+                  </th> */}
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Vendor
                   </th>
@@ -304,11 +221,11 @@ const ViewIssuedGoodsPage = () => {
                     Quantity
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Unit Price
+                    Total Price
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Total Value
-                  </th>
+                  </th> */}
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Issue Date
                   </th>
@@ -326,26 +243,23 @@ const ViewIssuedGoodsPage = () => {
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="font-medium text-gray-900 dark:text-white">
-                        {good.productName}
+                        {good.itemName}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
+                    {/* <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
                       {good.categoryName}
-                    </td>
+                    </td> */}
                     <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
-                      {good.vendorName}
+                      {good.vendor}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
                       {good.quantity}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
-                      ${good.sellingPrice.toFixed(2)}
+                      ${good.totalPrice.toFixed(2) || 0}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
-                      ${good.grossPrice.toFixed(2)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
-                      {new Date(good.issuedAt).toLocaleDateString()}
+                      {new Date(good.createdAt).toLocaleDateString()}
                     </td>
                   </tr>
                 ))}

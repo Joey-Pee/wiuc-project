@@ -11,64 +11,12 @@ import {
 
 interface Bill {
   id: string;
-  vendorId: string;
-  vendorName: string;
-  productId: string;
-  productName: string;
+  vendor: string;
+  itemName: string;
   quantity: number;
-  unitPrice: number;
   totalPrice: number;
-  issueDate: string;
-  datePaid: string;
-  paymentDate: string | null;
-  status: "paid" | "pending" | "overdue";
+  createdAt: string;
 }
-
-// Mock data for development
-const mockBills: Bill[] = [
-  {
-    id: "1",
-    vendorId: "v1",
-    vendorName: "Tech Solutions Inc.",
-    productId: "p1",
-    productName: "Laptop Dell XPS 13",
-    quantity: 5,
-    unitPrice: 1299.99,
-    totalPrice: 6499.95,
-    issueDate: "2024-03-15T00:00:00.000Z",
-    datePaid: "2024-04-15T00:00:00.000Z",
-    paymentDate: null,
-    status: "pending",
-  },
-  {
-    id: "2",
-    vendorId: "v2",
-    vendorName: "Office Supplies Co.",
-    productId: "p2",
-    productName: "Office Chair Ergonomic",
-    quantity: 10,
-    unitPrice: 299.99,
-    totalPrice: 2999.9,
-    issueDate: "2024-03-14T00:00:00.000Z",
-    datePaid: "2024-04-14T00:00:00.000Z",
-    paymentDate: "2024-04-10T00:00:00.000Z",
-    status: "paid",
-  },
-  {
-    id: "3",
-    vendorId: "v1",
-    vendorName: "Tech Solutions Inc.",
-    productId: "p3",
-    productName: "Wireless Mouse",
-    quantity: 20,
-    unitPrice: 49.99,
-    totalPrice: 999.8,
-    issueDate: "2024-03-13T00:00:00.000Z",
-    datePaid: "2024-04-13T00:00:00.000Z",
-    paymentDate: null,
-    status: "overdue",
-  },
-];
 
 const ViewBillsPage = () => {
   const [bills, setBills] = useState<Bill[]>([]);
@@ -77,25 +25,17 @@ const ViewBillsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    // Simulate API call with mock data
     const fetchBills = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // Simulate network delay
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        // Use mock data instead of actual API call
-        setBills(mockBills);
-
-        // Uncomment below for actual API call
-        // const response = await fetch("/api/bills");
-        // if (!response.ok) {
-        //   throw new Error("Failed to fetch bills");
-        // }
-        // const data = await response.json();
-        // setBills(data.data || []);
+        const response = await fetch("/api/issue-goods");
+        if (!response.ok) {
+          throw new Error("Failed to fetch issued goods");
+        }
+        const data = await response.json();
+        setBills(data.data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");
       } finally {
@@ -110,8 +50,8 @@ const ViewBillsPage = () => {
     return bills.filter((bill) => {
       const matchesSearch =
         searchTerm === "" ||
-        bill.vendorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        bill.productName.toLowerCase().includes(searchTerm.toLowerCase());
+        bill.vendor.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        bill.itemName.toLowerCase().includes(searchTerm.toLowerCase());
 
       return matchesSearch;
     });
@@ -121,29 +61,17 @@ const ViewBillsPage = () => {
   const summaryStats = useMemo(() => {
     const totalBills = bills.length;
     const totalAmount = bills.reduce((sum, bill) => sum + bill.totalPrice, 0);
-    const paidAmount = bills
-      .filter((bill) => bill.status === "paid")
-      .reduce((sum, bill) => sum + bill.totalPrice, 0);
-    const pendingAmount = bills
-      .filter((bill) => bill.status === "pending")
-      .reduce((sum, bill) => sum + bill.totalPrice, 0);
-    const overdueAmount = bills
-      .filter((bill) => bill.status === "overdue")
-      .reduce((sum, bill) => sum + bill.totalPrice, 0);
 
     return {
       totalBills,
       totalAmount,
-      paidAmount,
-      pendingAmount,
-      overdueAmount,
     };
   }, [bills]);
 
   const columns = useMemo<ColumnDef<Bill>[]>(
     () => [
       {
-        accessorKey: "vendorName",
+        accessorKey: "vendor",
         header: "Vendor",
         cell: ({ getValue }) => (
           <span className="font-medium text-gray-900 dark:text-white">
@@ -152,7 +80,7 @@ const ViewBillsPage = () => {
         ),
       },
       {
-        accessorKey: "productName",
+        accessorKey: "itemName",
         header: "Product Name",
         cell: ({ getValue }) => (
           <span className="text-gray-700 dark:text-gray-300">
@@ -161,7 +89,7 @@ const ViewBillsPage = () => {
         ),
       },
       {
-        accessorKey: "datePaid",
+        accessorKey: "createdAt",
         header: "Date Paid",
         cell: ({ getValue }) => {
           const date = getValue() as string;

@@ -12,6 +12,7 @@ import {
   MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "react-toastify";
 
 // Types
 interface Vendor {
@@ -26,29 +27,11 @@ interface Vendor {
   contactPerson: string;
 }
 
-// const isValidVendor = (vendor: any): vendor is Vendor => {
-//   return (
-//     vendor &&
-//     typeof vendor === "object" &&
-//     typeof vendor.name === "string" &&
-//     typeof vendor.email === "string" &&
-//     typeof vendor.phone === "string" &&
-//     typeof vendor.address === "string" &&
-//     typeof vendor.city === "string" &&
-//     typeof vendor.state === "string" &&
-//     typeof vendor.zipCode === "string" &&
-//     typeof vendor.contactPerson === "string"
-//   );
-// };
-
 const VendorsPage = () => {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  // const [statusFilter, setStatusFilter] = useState<
-  //   "all" | "active" | "inactive"
-  // >("all");
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -57,6 +40,8 @@ const VendorsPage = () => {
   const [vendorToDelete, setVendorToDelete] = useState<Vendor | null>(null);
   const [formData, setFormData] = useState<Partial<Vendor>>({});
   const [isEditing, setIsEditing] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  // const [saveLoading, setSaveLoading] = useState(false)
 
   useEffect(() => {
     const fetchVendors = async () => {
@@ -67,15 +52,6 @@ const VendorsPage = () => {
           throw new Error("Failed to load vendors");
         }
         const data = await response.json();
-
-        // DEBUG: Log the actual structure
-        // console.log("Raw API response:", data);
-        // console.log("Data.data structure:", data.data);
-        // console.log("First vendor:", data.data?.[0]);
-        // console.log(
-        //   "First vendor keys:",
-        //   data.data?.[0] ? Object.keys(data.data[0]) : "No first vendor"
-        // );
 
         setVendors(data.data);
         // console.log("vendors>>>", vendors);
@@ -102,8 +78,7 @@ const VendorsPage = () => {
           vendor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           vendor.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
           vendor.contactPerson.toLowerCase().includes(searchTerm.toLowerCase());
-        // const matchesStatus =
-        //   statusFilter === "all" || vendor.status === statusFilter;
+
         return matchesSearch;
       })
     : [];
@@ -142,6 +117,7 @@ const VendorsPage = () => {
 
   const confirmDelete = async () => {
     if (vendorToDelete) {
+      setDeleteLoading(true);
       try {
         const response = await fetch(`/api/vendors/${vendorToDelete.id}`, {
           method: "DELETE",
@@ -154,12 +130,15 @@ const VendorsPage = () => {
         setVendors(vendors.filter((v) => v.id !== vendorToDelete.id));
         setShowDeleteModal(false);
         setVendorToDelete(null);
+        toast.success("Vendor deleted successfully!");
       } catch (err) {
         setError(
           err instanceof Error
             ? err.message
             : "An error occurred while deleting vendor"
         );
+      } finally {
+        setDeleteLoading(false);
       }
     }
   };
@@ -198,6 +177,7 @@ const VendorsPage = () => {
           )
         );
         setShowEditModal(false);
+        toast.success("Vendor updated successfully!");
       } else {
         const response = await fetch("/api/vendors", {
           method: "POST",
@@ -229,6 +209,7 @@ const VendorsPage = () => {
           return updatedVendors;
         });
         setShowAddModal(false);
+        toast.success("Vendor added successfully!");
       }
       setFormData({});
       setSelectedVendor(null);
@@ -236,6 +217,11 @@ const VendorsPage = () => {
     } catch (err) {
       console.error("Error in handleSaveVendor:", err);
       setError(
+        err instanceof Error
+          ? err.message
+          : "An error occurred while saving vendor"
+      );
+      toast.error(
         err instanceof Error
           ? err.message
           : "An error occurred while saving vendor"
@@ -636,9 +622,9 @@ const VendorsPage = () => {
                   </button>
                   <button
                     onClick={confirmDelete}
-                    className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-white rounded-lg transition-colors duration-200"
+                    className={`flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-white rounded-lg transition-colors duration-200`}
                   >
-                    Delete
+                    {deleteLoading ? "Deleting" : "Delete"}
                   </button>
                 </div>
               </div>

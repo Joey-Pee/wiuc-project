@@ -6,17 +6,34 @@ import {
   FaTruckLoading,
   FaBars,
   FaTimes,
+  FaSignOutAlt,
 } from "react-icons/fa";
 import { MdAddShoppingCart, MdStorefront } from "react-icons/md";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ModeToggle } from "./ThemesToggle";
 import { Button } from "./ui/button";
-// import { BiCategory } from "react-icons/bi";
+import { toast } from "react-toastify";
 
 const Navbar = () => {
   const pathname = usePathname();
+  const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+
+      if (response.ok) {
+        router.push("/login");
+        toast.success("Logged Out");
+      }
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+  };
 
   const navLinks = [
     {
@@ -87,7 +104,16 @@ const Navbar = () => {
               </Link>
             ))}
           </div>
-          <div className="hidden lg:flex  px-3 justify-end">
+          <div className="hidden lg:flex  px-3 justify-end gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+              className="bg-[#497970] hover:bg-[#497970] text-white"
+            >
+              <FaSignOutAlt size={20} />
+              <span>Logout</span>
+            </Button>
             <ModeToggle />
           </div>
         </div>
@@ -111,7 +137,18 @@ const Navbar = () => {
             ))}
           </div>
 
-          <ModeToggle />
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+              className="bg-[#497970] hover:bg-[#497970] text-white"
+            >
+              <FaSignOutAlt size={20} />
+              <span className="hidden">Logout</span>
+            </Button>
+            <ModeToggle />
+          </div>
         </div>
 
         {/* Mobile Navigation */}
@@ -121,8 +158,15 @@ const Navbar = () => {
             <div className="text-white font-semibold text-lg">Menu</div>
 
             <div className="flex gap-2 items-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                className="bg-[#497970] hover:bg-[#497970] text-white"
+              >
+                <FaSignOutAlt size={20} />
+              </Button>
               <ModeToggle />
-
               <Button
                 variant="outline"
                 size="sm"
