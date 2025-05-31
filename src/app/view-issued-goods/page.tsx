@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import { Search, Package, AlertCircle, DollarSign } from "lucide-react";
+import { Search, Package, AlertCircle } from "lucide-react";
+import { FaCediSign } from "react-icons/fa6";
 
 interface IssuedGood {
   id: string;
@@ -109,7 +110,7 @@ const ViewIssuedGoodsPage = () => {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 md:p-6">
             <div className="flex items-center">
               <Package className="w-8 h-8 text-blue-600 dark:text-blue-400" />
@@ -125,13 +126,13 @@ const ViewIssuedGoodsPage = () => {
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 md:p-6">
             <div className="flex items-center">
-              <DollarSign className="w-8 h-8 text-green-600 dark:text-green-400" />
+              <FaCediSign className="w-8 h-8 text-green-600 dark:text-green-400" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
                   Total Value
                 </p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  ${summaryStats.totalValue.toFixed(2)}
+                  GHS {summaryStats.totalValue.toFixed(2)}
                 </p>
               </div>
             </div>
@@ -256,7 +257,7 @@ const ViewIssuedGoodsPage = () => {
                       {good.quantity}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
-                      ${good.totalPrice.toFixed(2) || 0}
+                      GHS {good.totalPrice.toFixed(2) || 0}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
                       {new Date(good.createdAt).toLocaleDateString()}

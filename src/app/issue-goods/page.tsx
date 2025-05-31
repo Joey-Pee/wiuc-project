@@ -255,7 +255,9 @@ const Page = () => {
       toast.success("Goods issued successfully!");
     } catch (error) {
       console.error("Error issuing goods:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to issue goods");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to issue goods"
+      );
     } finally {
       setIssueLoading(false);
     }
@@ -484,7 +486,7 @@ const Page = () => {
                         Unit Price:
                       </span>
                       <span className="ml-2 text-blue-700 dark:text-blue-300">
-                        ${selectedProduct.sellingPrice.toFixed(2)}
+                        GHS {selectedProduct.sellingPrice.toFixed(2)}
                       </span>
                     </div>
 
@@ -531,7 +533,7 @@ const Page = () => {
                           Total Price:
                         </span>
                         <span className="ml-2 text-blue-700 dark:text-blue-300">
-                          ${formData.totalPrice.toFixed(2)}
+                          GHS {formData.totalPrice.toFixed(2)}
                         </span>
                       </div>
                     )}

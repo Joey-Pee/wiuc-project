@@ -1,13 +1,15 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import { Search, Receipt, AlertCircle, DollarSign } from "lucide-react";
+import { Search, AlertCircle } from "lucide-react";
 import {
   ColumnDef,
   useReactTable,
   getCoreRowModel,
   flexRender,
 } from "@tanstack/react-table";
+import { FaCediSign } from "react-icons/fa6";
+import { FaReceipt } from "react-icons/fa";
 
 interface Bill {
   id: string;
@@ -113,7 +115,7 @@ const ViewBillsPage = () => {
         header: "Amount",
         cell: ({ getValue }) => (
           <span className="text-gray-700 dark:text-gray-300">
-            ${(getValue() as number).toFixed(2)}
+            GHS {(getValue() as number).toFixed(2)}
           </span>
         ),
       },
@@ -140,7 +142,7 @@ const ViewBillsPage = () => {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
-          <Receipt className="w-12 h-12 mx-auto animate-pulse text-blue-500" />
+          <FaReceipt className="w-12 h-12 mx-auto animate-pulse text-blue-500" />
           <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
         </div>
       </div>
@@ -174,7 +176,7 @@ const ViewBillsPage = () => {
         <div className="grid grid-cols-2 gap-6 mb-8">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 md:p-6">
             <div className="flex items-center">
-              <Receipt className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+              <FaReceipt className="w-8 h-8 text-blue-600 dark:text-blue-400" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
                   Total Bills
@@ -187,13 +189,13 @@ const ViewBillsPage = () => {
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 md:p-6">
             <div className="flex items-center">
-              <DollarSign className="w-8 h-8 text-green-600 dark:text-green-400" />
+              <FaCediSign className="w-8 h-8 text-green-600 dark:text-green-400" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
                   Total Amount
                 </p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  ${summaryStats.totalAmount.toFixed(2)}
+                  GHS {summaryStats.totalAmount.toFixed(2)}
                 </p>
               </div>
             </div>

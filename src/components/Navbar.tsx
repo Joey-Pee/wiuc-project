@@ -57,11 +57,7 @@ const Navbar = () => {
       label: "VIEW GOODS",
       icon: <FaBoxes size={20} />,
     },
-    {
-      href: "/view-bills",
-      label: "VIEW BILLS",
-      icon: <FaFileInvoiceDollar size={20} />,
-    },
+
     {
       href: "/issue-goods",
       label: "ISSUE GOODS",
@@ -71,6 +67,11 @@ const Navbar = () => {
       href: "/view-issued-goods",
       label: "VIEW ISSUED GOODS",
       icon: <FaTruckLoading size={20} />,
+    },
+    {
+      href: "/view-bills",
+      label: "VIEW BILLS",
+      icon: <FaFileInvoiceDollar size={20} />,
     },
   ];
 

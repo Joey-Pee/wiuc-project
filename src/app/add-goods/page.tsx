@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Save, X, Package, DollarSign, Tag, AlertCircle } from "lucide-react";
+import { Save, X, Package, Tag, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "react-toastify";
+import { FaCediSign } from "react-icons/fa6";
 
 interface Product {
   name: string;
@@ -327,8 +328,9 @@ const AddProductPage = () => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Selling Price *
                   </label>
-                  <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <div className="relative flex items-center">
+                    <FaCediSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+
                     <input
                       type="number"
                       step="0.01"
@@ -360,7 +362,7 @@ const AddProductPage = () => {
                     Cost Price *
                   </label>
                   <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <FaCediSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                     <input
                       type="number"
                       step="0.01"
@@ -431,7 +433,7 @@ const AddProductPage = () => {
                     Gross Price
                   </label>
                   <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <FaCediSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                     <input
                       type="text"
                       value={`${calculateGrossPrice().toFixed(2)}`}

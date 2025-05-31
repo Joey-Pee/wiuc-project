@@ -460,7 +460,7 @@ export default function GoodsPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                       Name
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider flex items-center">
                       Cost Price
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -490,11 +490,23 @@ export default function GoodsPage() {
                           {product.name}
                         </span>
                       </td>
+                      {/* Cost Price Column - Separate TD */}
                       <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
-                        ${product.buyingPrice?.toFixed(2) || "0.00"}
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-500">GHS</span>
+                          <span>
+                            {product.buyingPrice?.toFixed(2) || "0.00"}
+                          </span>
+                        </div>
                       </td>
+                      {/* Selling Price Column - Separate TD */}
                       <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
-                        ${product.sellingPrice?.toFixed(2) || "0.00"}
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-500">GHS</span>
+                          <span>
+                            {product.sellingPrice?.toFixed(2) || "0.00"}
+                          </span>
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
                         {product.quantity || 0}
@@ -539,6 +551,7 @@ export default function GoodsPage() {
       toast.success(`Products deleted from ${categoryName}`);
 
       groupProductsByCategory();
+      window.location.reload();
 
       console.log("Category products deleted successfully");
     } catch (error) {
@@ -611,7 +624,7 @@ export default function GoodsPage() {
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {loading
                     ? "..."
-                    : `$${summaryStats.totalValue.toLocaleString()}`}
+                    : `GHS ${summaryStats.totalValue.toLocaleString()}`}
                 </p>
               </div>
             </div>
@@ -786,7 +799,7 @@ export default function GoodsPage() {
                         </span>
                       </div>
 
-                      <div className="flex justify-end">
+                      {/* <div className="flex justify-end">
                         <Button
                           variant="outline"
                           className="flex items-center gap-2  px-4 py-2 hover:text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-medium rounded-lg transition-colors duration-200"
@@ -795,7 +808,7 @@ export default function GoodsPage() {
                           <FaEdit />
                           <span className="hidden md:block"> Edit</span>
                         </Button>
-                      </div>
+                      </div> */}
                     </div>
                   </div>
                 </div>
