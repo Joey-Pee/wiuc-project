@@ -7,9 +7,6 @@ import {
   AlertTriangle,
   TrendingUp,
   TrendingDown,
-  Save,
-  Tag,
-  DollarSign,
 } from "lucide-react";
 import {
   ColumnDef,
@@ -19,7 +16,6 @@ import {
 } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { MdDelete } from "react-icons/md";
-import { FaEdit } from "react-icons/fa";
 import { toast } from "react-toastify";
 
 interface Product {
@@ -56,9 +52,6 @@ export default function GoodsPage() {
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [formData, setFormData] = useState<Partial<Product>>({});
-  const [isEditing, setIsEditing] = useState(false);
   const [categoriesData, setCategoriesData] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [groupedProducts, setGroupedProducts] = useState<GroupedProducts>({});
@@ -97,11 +90,11 @@ export default function GoodsPage() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const result = await response.json();
-      console.log("API Response:", result);
+      // console.log("API Response:", result);
 
       if (result.data && Array.isArray(result.data)) {
         goodsData = result.data;
-        console.log("Updated goodsData:", goodsData);
+        // console.log("Updated goodsData:", goodsData);
         // Trigger regrouping after data is updated
         groupProductsByCategory();
       } else {
@@ -123,64 +116,18 @@ export default function GoodsPage() {
     setShowModal(true);
   };
 
-  const handleEditProduct = (product: Product) => {
-    setFormData(product);
-    setSelectedProduct(product);
-    setIsEditing(true);
-    setShowModal(false);
-  };
-
-  const handleInputChange = (
-    field: keyof Product,
-    value: string | number | boolean | { name: string; id: string }
-  ) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleSaveProduct = () => {
-    if (isEditing && selectedProduct) {
-      // Update existing product
-      const updatedProduct = {
-        ...selectedProduct,
-        ...formData,
-      } as Product;
-
-      goodsData = goodsData.map((p) =>
-        p.id === selectedProduct.id ? updatedProduct : p
-      );
-      setShowEditModal(false);
-    } else {
-      // Add new product
-      const newProduct: Product = {
-        ...formData,
-        grossPrice: calculateGrossPrice(),
-      } as Product;
-      goodsData = [...goodsData, newProduct];
-    }
-    setFormData({});
-    setSelectedProduct(null);
-    setIsEditing(false);
-  };
-
-  // Calculate gross price whenever quantity or selling price changes
-  const calculateGrossPrice = (): number => {
-    const quantity = formData.quantity ?? 0;
-    const sellingPrice = formData.sellingPrice ?? 0;
-    return quantity * sellingPrice;
-  };
-
   const groupProductsByCategory = useCallback(() => {
-    console.log("Grouping products...");
-    console.log("goodsData:", goodsData);
-    console.log("categoriesData:", categoriesData);
+    // console.log("Grouping products...");
+    // console.log("goodsData:", goodsData);
+    // console.log("categoriesData:", categoriesData);
 
     if (goodsData.length === 0 || categoriesData.length === 0) {
-      console.log(
-        "No data to group - goodsData length:",
-        goodsData.length,
-        "categoriesData length:",
-        categoriesData.length
-      );
+      // console.log(
+      //   "No data to group - goodsData length:",
+      //   goodsData.length,
+      //   "categoriesData length:",
+      //   categoriesData.length
+      // );
       setGroupedProducts({});
       return;
     }
@@ -197,12 +144,12 @@ export default function GoodsPage() {
 
     // Group products by their category ID
     goodsData.forEach((product) => {
-      console.log(
-        "Processing product:",
-        product.name,
-        "with category ID:",
-        product.categoryId
-      );
+      // console.log(
+      //   "Processing product:",
+      //   product.name,
+      //   "with category ID:",
+      //   product.categoryId
+      // );
       if (grouped[product.categoryId]) {
         grouped[product.categoryId].products.push(product);
       } else {
@@ -215,7 +162,7 @@ export default function GoodsPage() {
       }
     });
 
-    console.log("Final grouped products:", grouped);
+    // console.log("Final grouped products:", grouped);
     setGroupedProducts(grouped);
   }, [categoriesData]);
 
@@ -280,7 +227,7 @@ export default function GoodsPage() {
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value;
       setSearchTerm(value);
-      console.log("searchTerm", value);
+      // console.log("searchTerm", value);
     },
     []
   );
@@ -553,7 +500,7 @@ export default function GoodsPage() {
       groupProductsByCategory();
       window.location.reload();
 
-      console.log("Category products deleted successfully");
+      // console.log("Category products deleted successfully");
     } catch (error) {
       console.error("Error deleting category products:", error);
     } finally {
@@ -814,192 +761,6 @@ export default function GoodsPage() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Product */}
-
-      {isEditing && selectedProduct && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className=" bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-            <form onSubmit={handleSaveProduct} className="p-6 space-y-6">
-              {/* Basic Information */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                  <Package className="w-5 h-5 mr-2" />
-                  Basic Information
-                </h3>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Product Name *
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.name || ""}
-                      onChange={(e) =>
-                        handleInputChange("name", e.target.value)
-                      }
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white 
-                          border-gray-300 dark:border-gray-600
-                      `}
-                      placeholder="Enter product name"
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Description
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={formData.description || ""}
-                      onChange={(e) =>
-                        handleInputChange("description", e.target.value)
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      placeholder="Enter product description"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Category and Pricing */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                  <Tag className="w-5 h-5 mr-2" />
-                  Category & Pricing
-                </h3>
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Category *
-                    </label>
-                    <select
-                      value={formData.categoryId || ""}
-                      onChange={(e) => {
-                        handleInputChange("categoryId", e.target.value);
-                      }}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600`}
-                    >
-                      <option value="">Select category</option>
-                      {categoriesData.map((category) => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Selling Price *
-                    </label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={formData.sellingPrice || ""}
-                        onChange={(e) =>
-                          handleInputChange(
-                            "sellingPrice",
-                            parseFloat(e.target.value) || 0
-                          )
-                        }
-                        className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600`}
-                        placeholder="0.00"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Cost Price *
-                    </label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={formData.buyingPrice || ""}
-                        onChange={(e) =>
-                          handleInputChange(
-                            "buyingPrice",
-                            parseFloat(e.target.value) || 0
-                          )
-                        }
-                        className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600`}
-                        placeholder="0.00"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Inventory */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                  <Package className="w-5 h-5 mr-2" />
-                  Inventory
-                </h3>
-                <div className="grid md:grid-cols-4 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Quantity *
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={formData.quantity || ""}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "quantity",
-                          parseInt(e.target.value) || 0
-                        )
-                      }
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600`}
-                      placeholder="0"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Gross Price
-                    </label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <input
-                        type="text"
-                        value={`${calculateGrossPrice().toFixed(2)}`}
-                        readOnly
-                        className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white cursor-not-allowed"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
-                <Button
-                  type="submit"
-                  className="flex-1 sm:flex-none inline-flex items-center justify-center px-6 py-3 bg-gray-400 hover:bg-gray-500 dark:bg-gray-400 dark:hover:bg-gray-500 text-white font-medium rounded-lg transition-colors duration-200"
-                  onClick={() => setShowEditModal(false)}
-                >
-                  <Save className="w-5 h-5 md:mr-2" />
-                  <span className="hidden md:block">Cancel</span>
-                </Button>
-                <Button
-                  type="submit"
-                  className="flex-1 sm:flex-none inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-medium rounded-lg transition-colors duration-200"
-                >
-                  <Save className="w-5 h-5 md:mr-2" />
-                  <span className="hidden md:block">Update Product</span>
-                </Button>
-              </div>
-            </form>
           </div>
         </div>
       )}
