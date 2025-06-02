@@ -70,7 +70,7 @@ const Page = () => {
         }
         const categoriesData = await categoriesResponse.json();
         setCategories(categoriesData.data);
-        console.log("Categories Data loaded:", categoriesData.data);
+        // console.log("Categories Data loaded:", categoriesData.data);
 
         // Fetch products
         const productsResponse = await fetch("/api/goods");
@@ -78,7 +78,7 @@ const Page = () => {
           throw new Error("Failed to fetch products");
         }
         const productsData = await productsResponse.json();
-        console.log("Raw Products API Response:", productsData);
+        // console.log("Raw Products API Response:", productsData);
 
         // Ensure products have categoryId
         const processedProducts = productsData.data.map((product: Product) => ({
@@ -86,7 +86,7 @@ const Page = () => {
           categoryId: product.categoryId || null,
         }));
 
-        console.log("Processed Products:", processedProducts);
+        // console.log("Processed Products:", processedProducts);
         setProducts(processedProducts);
 
         // Fetch vendors
@@ -109,31 +109,31 @@ const Page = () => {
 
   // Filter products based on selected category
   const filteredProducts = useMemo(() => {
-    console.log("Filtering products. CategoryId:", formData.categoryId);
-    console.log("All products:", products);
+    // console.log("Filtering products. CategoryId:", formData.categoryId);
+    // console.log("All products:", products);
 
     if (!formData.categoryId) return [];
 
     // Log the first product's categoryId for debugging
     if (products.length > 0) {
-      console.log("First product:", products[0]);
-      console.log("First product categoryId:", products[0].categoryId);
-      console.log(
-        "First product categoryId type:",
-        typeof products[0].categoryId
-      );
-      console.log("Selected categoryId type:", typeof formData.categoryId);
+      // console.log("First product:", products[0]);
+      // console.log("First product categoryId:", products[0].categoryId);
+      // console.log(
+      //   "First product categoryId type:",
+      //   typeof products[0].categoryId
+      // );
+      // console.log("Selected categoryId type:", typeof formData.categoryId);
     }
 
     const filtered = products.filter((product) => {
       const matches = product.categoryId === formData.categoryId;
-      console.log(
-        `Product ${product.name}: categoryId=${product.categoryId}, matches=${matches}`
-      );
+      // console.log(
+      //   `Product ${product.name}: categoryId=${product.categoryId}, matches=${matches}`
+      // );
       return matches;
     });
 
-    console.log("Filtered products:", filtered);
+    // console.log("Filtered products:", filtered);
     return filtered;
   }, [formData.categoryId, products]);
 
@@ -146,8 +146,8 @@ const Page = () => {
   }, [formData.productId, products]);
 
   const handleCategoryChange = (categoryId: string) => {
-    console.log("Category changed to:", categoryId);
-    console.log("Category type:", typeof categoryId);
+    // console.log("Category changed to:", categoryId);
+    // console.log("Category type:", typeof categoryId);
 
     setFormData((prev) => ({
       ...prev,
@@ -237,7 +237,7 @@ const Page = () => {
       }
 
       const data = await response.json();
-      console.log("Issue Goods Response:", data);
+      // console.log("Issue Goods Response:", data);
 
       // Refresh products data after successful submission
       const productsResponse = await fetch("/api/goods");
@@ -245,7 +245,7 @@ const Page = () => {
         throw new Error("Failed to refresh products");
       }
       const productsData = await productsResponse.json();
-      console.log("Refreshed products after issue:", productsData.data);
+      // console.log("Refreshed products after issue:", productsData.data);
       setProducts(productsData.data);
 
       // Reset form after successful submission

@@ -121,6 +121,10 @@ select {
   cursor: pointer;
 }
 
+Button:disabled {
+  cursor: not-allowed;
+}
+
 Button {
   border-color: #497970;
 }

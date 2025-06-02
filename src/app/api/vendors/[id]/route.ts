@@ -40,7 +40,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const id = params.id;
+    const { id } = await params;
 
     const response = await fetch(`${baseUrl}/vendors/${id}`, {
       method: "DELETE",
