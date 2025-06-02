@@ -14,7 +14,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "react-toastify";
 
-// Types
 interface Vendor {
   id: string;
   name: string;
@@ -39,9 +38,10 @@ const VendorsPage = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [vendorToDelete, setVendorToDelete] = useState<Vendor | null>(null);
   const [formData, setFormData] = useState<Partial<Vendor>>({});
+  const [originalVendorData, setOriginalVendorData] = useState<Partial<Vendor>>({});
   const [isEditing, setIsEditing] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  // const [saveLoading, setSaveLoading] = useState(false)
+  const [saveLoading, setSaveLoading] = useState(false);
 
   useEffect(() => {
     const fetchVendors = async () => {
@@ -105,6 +105,7 @@ const VendorsPage = () => {
 
   const handleEditVendor = (vendor: Vendor) => {
     setFormData(vendor);
+    setOriginalVendorData(vendor);
     setSelectedVendor(vendor);
     setIsEditing(true);
     setShowEditModal(true);
@@ -145,6 +146,7 @@ const VendorsPage = () => {
 
   const handleSaveVendor = async () => {
     try {
+      setSaveLoading(true);
       if (isEditing && selectedVendor) {
         // Update existing vendor
         const response = await fetch(`/api/vendors`, {
@@ -226,11 +228,22 @@ const VendorsPage = () => {
           ? err.message
           : "An error occurred while saving vendor"
       );
+    } finally {
+      setSaveLoading(false);
     }
   };
 
   const handleInputChange = (field: keyof Vendor, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // Add function to check if form data has changed
+  const hasFormDataChanged = () => {
+    if (!isEditing) return true; // Always enable for new vendors
+    return Object.keys(formData).some(key => {
+      const typedKey = key as keyof Vendor;
+      return formData[typedKey] !== originalVendorData[typedKey];
+    });
   };
 
   if (isLoading) {
@@ -576,9 +589,37 @@ const VendorsPage = () => {
                     </button>
                     <button
                       type="submit"
-                      className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg transition-colors duration-200"
+                      disabled={isLoading || (isEditing && !hasFormDataChanged())}
+                      className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
-                      {isEditing ? "Update Vendor" : "Add Vendor"}
+                      {saveLoading && (
+                        <svg
+                          className="animate-spin h-4 w-4"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                            fill="none"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          />
+                        </svg>
+                      )}
+                      {saveLoading
+                        ? isEditing
+                          ? "Updating..."
+                          : "Adding..."
+                        : isEditing
+                        ? "Update Vendor"
+                        : "Add Vendor"}
                     </button>
                   </div>
                 </form>
@@ -622,8 +663,26 @@ const VendorsPage = () => {
                   </button>
                   <button
                     onClick={confirmDelete}
-                    className={`flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-white rounded-lg transition-colors duration-200`}
+                    className={`flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-white rounded-lg transition-colors duration-200 flex items-center justify-center gap-2`}
                   >
+                    {deleteLoading && (
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                          fill="none"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                    )}
                     {deleteLoading ? "Deleting" : "Delete"}
                   </button>
                 </div>

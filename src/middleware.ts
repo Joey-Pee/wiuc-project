@@ -4,7 +4,8 @@ import type { NextRequest } from "next/server";
 export function middleware(request: NextRequest) {
   const authToken = request.cookies.get("auth_token");
   const isLoginPage = request.nextUrl.pathname === "/login";
-  const isProtectedRoute = !isLoginPage && request.nextUrl.pathname !== "/";
+  const isRootPath = request.nextUrl.pathname === "/";
+  const isPublicPath = isLoginPage || isRootPath;
 
   // If user is on login page and has auth token, redirect to view-vendors
   if (isLoginPage && authToken) {
@@ -12,7 +13,7 @@ export function middleware(request: NextRequest) {
   }
 
   // If user is on a protected route and has no auth token, redirect to login
-  if (isProtectedRoute && !authToken) {
+  if (!isPublicPath && !authToken) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
@@ -22,11 +23,13 @@ export function middleware(request: NextRequest) {
 // Configure which routes to run middleware on
 export const config = {
   matcher: [
-    "/issue-goods",
-    "/view-bills",
-    "/view-goods",
-    "/view-issued-goods",
-    "/view-vendors",
-    "/login",
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    "/((?!api|_next/static|_next/image|favicon.ico).*)",
   ],
 };
