@@ -42,6 +42,7 @@ const AddProductPage = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [categoriesData, setCategoriesData] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saveLoading, setSaveLoading] = useState(false);
 
   useEffect(() => {
     Promise.all([fetchCategoriesData()]);
@@ -129,7 +130,6 @@ const AddProductPage = () => {
     }
 
     try {
-      // Add the current form data to products
       const newProduct: Product = {
         ...formData,
         grossPrice: calculateGrossPrice(),
@@ -138,6 +138,7 @@ const AddProductPage = () => {
       const allProducts = [...products, newProduct];
 
       // Send each product to the API
+      setSaveLoading(true);
       const savePromises = allProducts.map(async (product) => {
         const response = await fetch("/api/goods", {
           method: "POST",
@@ -174,6 +175,8 @@ const AddProductPage = () => {
         pauseOnHover: true,
         draggable: true,
       });
+    } finally {
+      setSaveLoading(false);
     }
   };
 
@@ -459,10 +462,13 @@ const AddProductPage = () => {
               </Button> */}
               <Button
                 type="submit"
-                className="flex-1 sm:flex-none inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-medium rounded-lg transition-colors duration-200"
+                className="flex-1 sm:flex-none inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-medium rounded-lg transition-colors duration-200 disabled:cursor-not-allowed"
+                disabled={saveLoading}
               >
                 <Save className="w-5 h-5 md:mr-2" />
-                <span className="hidden md:block">Save Product(s)</span>
+                <span className="hidden md:block">
+                  {saveLoading ? "Saving Product" : "Save Product"}
+                </span>
               </Button>
               <Button
                 type="button"

@@ -26,7 +26,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    console.log("Received request body:", body);
+    // console.log("Received request body:", body);
 
     // Validate required fields
     const requiredFields = [
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
     }
 
     const data = await response.json();
-    console.log("API response data:", data);
+    // console.log("API response data:", data);
     return NextResponse.json(data, { status: 201 });
   } catch (error) {
     console.error("Error creating product:", error);
