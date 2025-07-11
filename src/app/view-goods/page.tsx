@@ -8,12 +8,6 @@ import {
   TrendingUp,
   TrendingDown,
 } from "lucide-react";
-import {
-  ColumnDef,
-  useReactTable,
-  getCoreRowModel,
-  // flexRender,
-} from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { MdDelete } from "react-icons/md";
 import { toast } from "react-toastify";
@@ -21,7 +15,7 @@ import { toast } from "react-toastify";
 interface Product {
   id: string;
   name: string;
-  categoryId: string; // This represents the category ID
+  categoryId: string;
   description: string;
   sellingPrice: number;
   buyingPrice: number;
@@ -44,26 +38,18 @@ interface GroupedProducts {
 
 const minStockLevel = 10;
 
-let goodsData: Product[] = [];
-
 export default function GoodsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("");
-
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [categoriesData, setCategoriesData] = useState<Category[]>([]);
+  const [goodsData, setGoodsData] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [groupedProducts, setGroupedProducts] = useState<GroupedProducts>({});
   const [deleteCategoryItem, setDeleteCategoryItem] = useState(false);
 
-  useEffect(() => {
-    Promise.all([fetchCategoriesData(), fetchProductsData()]).then(() => {
-      groupProductsByCategory();
-    });
-  }, []);
-
-  const fetchCategoriesData = async () => {
+  const fetchCategoriesData = useCallback(async () => {
     try {
       const response = await fetch("/api/categories");
       if (!response.ok) {
@@ -75,59 +61,39 @@ export default function GoodsPage() {
       if (result.data && result.data.length > 0) {
         setCategoryFilter(String(result.data[0].id));
       }
-      // console.log("categories", result.data);
     } catch (err) {
       console.error("Error fetching categories", err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchProductsData = async () => {
+  const fetchProductsData = useCallback(async () => {
     try {
       const response = await fetch("/api/goods");
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const result = await response.json();
-      // console.log("API Response:", result);
 
       if (result.data && Array.isArray(result.data)) {
-        goodsData = result.data;
-        // console.log("Updated goodsData:", goodsData);
-        // Trigger regrouping after data is updated
-        groupProductsByCategory();
+        setGoodsData(result.data);
       } else {
         console.error("Invalid data format received:", result);
-        goodsData = [];
+        setGoodsData([]);
         setGroupedProducts({});
       }
     } catch (err) {
       console.error("Error fetching products:", err);
-      goodsData = [];
+      setGoodsData([]);
       setGroupedProducts({});
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleViewProduct = (product: Product) => {
-    setSelectedProduct(product);
-    setShowModal(true);
-  };
+  }, []);
 
   const groupProductsByCategory = useCallback(() => {
-    // console.log("Grouping products...");
-    // console.log("goodsData:", goodsData);
-    // console.log("categoriesData:", categoriesData);
-
     if (goodsData.length === 0 || categoriesData.length === 0) {
-      // console.log(
-      //   "No data to group - goodsData length:",
-      //   goodsData.length,
-      //   "categoriesData length:",
-      //   categoriesData.length
-      // );
       setGroupedProducts({});
       return;
     }
@@ -144,12 +110,6 @@ export default function GoodsPage() {
 
     // Group products by their category ID
     goodsData.forEach((product) => {
-      // console.log(
-      //   "Processing product:",
-      //   product.name,
-      //   "with category ID:",
-      //   product.categoryId
-      // );
       if (grouped[product.categoryId]) {
         grouped[product.categoryId].products.push(product);
       } else {
@@ -162,13 +122,23 @@ export default function GoodsPage() {
       }
     });
 
-    // console.log("Final grouped products:", grouped);
     setGroupedProducts(grouped);
-  }, [categoriesData]);
+  }, [goodsData, categoriesData]);
+
+  useEffect(() => {
+    Promise.all([fetchCategoriesData(), fetchProductsData()]).then(() => {
+      groupProductsByCategory();
+    });
+  }, [fetchCategoriesData, fetchProductsData, groupProductsByCategory]);
 
   useEffect(() => {
     groupProductsByCategory();
   }, [groupProductsByCategory]);
+
+  const handleViewProduct = (product: Product) => {
+    setSelectedProduct(product);
+    setShowModal(true);
+  };
 
   const getStatusBadge = useCallback((product: Product) => {
     const halfProducts = product.quantity > minStockLevel;
@@ -203,7 +173,6 @@ export default function GoodsPage() {
   };
 
   // Calculate summary stats
-
   const summaryStats = useMemo(() => {
     const totalProducts = goodsData.length;
     const lowStockProducts = goodsData.filter(
@@ -227,7 +196,6 @@ export default function GoodsPage() {
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value;
       setSearchTerm(value);
-      // console.log("searchTerm", value);
     },
     []
   );
@@ -286,51 +254,6 @@ export default function GoodsPage() {
 
     return filtered;
   }, [groupedProducts, searchTerm, categoryFilter]);
-
-  const columns = useMemo<ColumnDef<Product>[]>(
-    () => [
-      {
-        accessorKey: "name",
-        header: "Name",
-        cell: ({ getValue }) => (
-          <span className="font-medium">{(getValue() as string) || "-"}</span>
-        ),
-      },
-      {
-        accessorKey: "buyingPrice",
-        header: "Cost Price",
-        cell: ({ getValue }) => (
-          <span className="">${((getValue() as number) || 0).toFixed(2)}</span>
-        ),
-      },
-      {
-        accessorKey: "sellingPrice",
-        header: "Selling Price",
-        cell: ({ getValue }) => (
-          <span className="">${((getValue() as number) || 0).toFixed(2)}</span>
-        ),
-      },
-      {
-        accessorKey: "quantity",
-        header: "Quantity",
-        cell: ({ getValue }) => (
-          <span className="">{(getValue() as number) || 0}</span>
-        ),
-      },
-      {
-        accessorKey: "stockLevel",
-        header: "Stock Level",
-        cell: ({ row }) => getStatusBadge(row.original),
-      },
-    ],
-    [getStatusBadge]
-  );
-
-  const table = useReactTable<Product>({
-    data: goodsData,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-  });
 
   const renderGroupedProducts = () => {
     if (loading) {
@@ -494,13 +417,13 @@ export default function GoodsPage() {
       const categoryName = category ? category.name : "Unknown Category";
 
       // Remove the deleted products from the local state
-      goodsData = goodsData.filter((p) => p.categoryId !== categoryId);
+      setGoodsData((prevData) =>
+        prevData.filter((p) => p.categoryId !== categoryId)
+      );
       toast.success(`Products deleted from ${categoryName}`);
 
       groupProductsByCategory();
       window.location.reload();
-
-      // console.log("Category products deleted successfully");
     } catch (error) {
       console.error("Error deleting category products:", error);
     } finally {
@@ -745,17 +668,6 @@ export default function GoodsPage() {
                           )}
                         </span>
                       </div>
-
-                      {/* <div className="flex justify-end">
-                        <Button
-                          variant="outline"
-                          className="flex items-center gap-2  px-4 py-2 hover:text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-medium rounded-lg transition-colors duration-200"
-                          onClick={() => handleEditProduct(selectedProduct)}
-                        >
-                          <FaEdit />
-                          <span className="hidden md:block"> Edit</span>
-                        </Button>
-                      </div> */}
                     </div>
                   </div>
                 </div>

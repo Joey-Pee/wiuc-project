@@ -72,54 +72,29 @@ export async function POST(request: Request) {
   }
 }
 
-export async function PUT(request: Request) {
-  try {
-    const body = await request.json();
+// export async function PUT(request: Request) {
+//   try {
+//     const body = await request.json();
 
-    const response = await fetch(`${baseUrl}/vendors`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    });
+//     const response = await fetch(`${baseUrl}/vendors`, {
+//       method: "PUT",
+//       headers: {
+//         "Content-Type": "application/json",
+//       },
+//       body: JSON.stringify(body),
+//     });
 
-    if (!response.ok) {
-      throw new Error("Failed to update vendor");
-    }
+//     if (!response.ok) {
+//       throw new Error("Failed to update vendor");
+//     }
 
-    const data = await response.json();
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error("Error updating vendor:", error);
-    return NextResponse.json(
-      { error: (error as Error).message },
-      { status: 500 }
-    );
-  }
-}
-
-export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const id = params.id;
-
-    const response = await fetch(`${baseUrl}/vendors/${id}`, {
-      method: "DELETE",
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to delete vendor");
-    }
-
-    return NextResponse.json({ message: "Vendor deleted successfully" });
-  } catch (error) {
-    console.error("Error deleting vendor:", error);
-    return NextResponse.json(
-      { error: (error as Error).message },
-      { status: 500 }
-    );
-  }
-}
+//     const data = await response.json();
+//     return NextResponse.json(data);
+//   } catch (error) {
+//     console.error("Error updating vendor:", error);
+//     return NextResponse.json(
+//       { error: (error as Error).message },
+//       { status: 500 }
+//     );
+//   }
+// }

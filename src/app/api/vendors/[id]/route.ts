@@ -6,11 +6,11 @@ const baseUrl =
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await request.json();
-    const id = params.id;
+    const { id } = await params;
 
     const response = await fetch(`${baseUrl}/vendors/${id}`, {
       method: "PUT",
@@ -35,9 +35,34 @@ export async function PUT(
   }
 }
 
+// export async function DELETE(
+//   request: Request,
+//   { params }: { params: Promise<{ id: string }> }
+// ) {
+//   try {
+//     const { id } = await params;
+
+//     const response = await fetch(`${baseUrl}/vendors/${id}`, {
+//       method: "DELETE",
+//     });
+
+//     if (!response.ok) {
+//       throw new Error("Failed to delete vendor");
+//     }
+
+//     return NextResponse.json({ message: "Vendor deleted successfully" });
+//   } catch (error) {
+//     console.error("Error deleting vendor:", error);
+//     return NextResponse.json(
+//       { error: (error as Error).message },
+//       { status: 500 }
+//     );
+//   }
+// }
+
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;

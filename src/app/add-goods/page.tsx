@@ -28,7 +28,7 @@ interface Category {
 
 const AddProductPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
-  const [currentFormIndex, setCurrentFormIndex] = useState(0);
+  // const [currentFormIndex, setCurrentFormIndex] = useState(0);
   const [formData, setFormData] = useState<Partial<Product>>({
     name: "",
     description: "",
@@ -41,7 +41,7 @@ const AddProductPage = () => {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [categoriesData, setCategoriesData] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  // const [loading, setLoading] = useState(true);
   const [saveLoading, setSaveLoading] = useState(false);
 
   useEffect(() => {
@@ -61,7 +61,7 @@ const AddProductPage = () => {
     } catch (err) {
       console.error("Error fetching categories", err);
     } finally {
-      setLoading(false);
+      // setLoading(false);
     }
   };
 
@@ -163,7 +163,7 @@ const AddProductPage = () => {
 
       // Reset everything
       setProducts([]);
-      setCurrentFormIndex(0);
+      // setCurrentFormIndex(0);
       resetForm();
     } catch (error) {
       console.error("Error saving products:", error);

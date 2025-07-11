@@ -18,7 +18,7 @@ interface Category {
   name: string;
   description: string;
   productCount: number;
-  status: "active" | "inactive";
+  status: "active" | "inactive" | "all";
   createdDate: string;
   lastUpdated: string;
   color: string;
@@ -485,8 +485,8 @@ export default function CategoriesPage() {
                   </h3>
                 </div>
                 <p className="text-gray-600 dark:text-gray-400 mb-6">
-                  Are you sure you want to delete "{categoryToDelete.name}"?
-                  This action cannot be undone.
+                  Are you sure you want to delete &quot;{categoryToDelete.name}
+                  &quot;? This action cannot be undone.
                 </p>
                 <div className="flex justify-end space-x-3">
                   <button
@@ -582,7 +582,9 @@ export default function CategoriesPage() {
           {/* Status Filter */}
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
+            onChange={(e) =>
+              setStatusFilter(e.target.value as "all" | "active" | "inactive")
+            }
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
           >
             <option value="all">All Status</option>

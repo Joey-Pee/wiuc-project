@@ -236,7 +236,7 @@ const Page = () => {
         throw new Error(errorData.error || "Failed to issue goods");
       }
 
-      const data = await response.json();
+      // const data = await response.json();
       // console.log("Issue Goods Response:", data);
 
       // Refresh products data after successful submission
