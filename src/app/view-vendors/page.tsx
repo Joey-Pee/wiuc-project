@@ -38,7 +38,9 @@ const VendorsPage = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [vendorToDelete, setVendorToDelete] = useState<Vendor | null>(null);
   const [formData, setFormData] = useState<Partial<Vendor>>({});
-  const [originalVendorData, setOriginalVendorData] = useState<Partial<Vendor>>({});
+  const [originalVendorData, setOriginalVendorData] = useState<Partial<Vendor>>(
+    {}
+  );
   const [isEditing, setIsEditing] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
@@ -71,7 +73,7 @@ const VendorsPage = () => {
     fetchVendors();
   }, []);
 
-  // Filter vendors based on search term and status
+  // Filter vendors based on search term
   const filteredVendors = Array.isArray(vendors)
     ? vendors.filter((vendor) => {
         const matchesSearch =
@@ -148,7 +150,6 @@ const VendorsPage = () => {
     try {
       setSaveLoading(true);
       if (isEditing && selectedVendor) {
-        // Update existing vendor
         const response = await fetch(`/api/vendors`, {
           method: "PUT",
           headers: {
@@ -240,7 +241,7 @@ const VendorsPage = () => {
   // Add function to check if form data has changed
   const hasFormDataChanged = () => {
     if (!isEditing) return true; // Always enable for new vendors
-    return Object.keys(formData).some(key => {
+    return Object.keys(formData).some((key) => {
       const typedKey = key as keyof Vendor;
       return formData[typedKey] !== originalVendorData[typedKey];
     });
@@ -294,7 +295,7 @@ const VendorsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    <div className=" bg-gray-50 dark:bg-gray-900 transition-colors duration-200 pt-5 pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -589,7 +590,9 @@ const VendorsPage = () => {
                     </button>
                     <button
                       type="submit"
-                      disabled={isLoading || (isEditing && !hasFormDataChanged())}
+                      disabled={
+                        isLoading || (isEditing && !hasFormDataChanged())
+                      }
                       className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                       {saveLoading && (
