@@ -58,15 +58,14 @@ export default function GoodsPage() {
       const result = await response.json();
       setCategoriesData(result.data);
 
-      if (result.data && result.data.length > 0) {
+      // Only set default category if no category is currently selected
+      if (result.data && result.data.length > 0 && !categoryFilter) {
         setCategoryFilter(String(result.data[0].id));
       }
     } catch (err) {
       console.error("Error fetching categories", err);
-    } finally {
-      setLoading(false);
     }
-  }, []);
+  }, [categoryFilter]);
 
   const fetchProductsData = useCallback(async () => {
     try {
@@ -81,21 +80,16 @@ export default function GoodsPage() {
       } else {
         console.error("Invalid data format received:", result);
         setGoodsData([]);
-        setGroupedProducts({});
       }
     } catch (err) {
       console.error("Error fetching products:", err);
       setGoodsData([]);
-      setGroupedProducts({});
-    } finally {
-      setLoading(false);
     }
   }, []);
 
-  const groupProductsByCategory = useCallback(() => {
+  const groupProductsByCategory = useMemo(() => {
     if (goodsData.length === 0 || categoriesData.length === 0) {
-      setGroupedProducts({});
-      return;
+      return {};
     }
 
     const grouped: GroupedProducts = {};
@@ -122,18 +116,29 @@ export default function GoodsPage() {
       }
     });
 
-    setGroupedProducts(grouped);
+    return grouped;
   }, [goodsData, categoriesData]);
 
+  // Update groupedProducts when grouping changes
   useEffect(() => {
-    Promise.all([fetchCategoriesData(), fetchProductsData()]).then(() => {
-      groupProductsByCategory();
-    });
-  }, [fetchCategoriesData, fetchProductsData, groupProductsByCategory]);
-
-  useEffect(() => {
-    groupProductsByCategory();
+    setGroupedProducts(groupProductsByCategory);
   }, [groupProductsByCategory]);
+
+  // Initial data fetch
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        await Promise.all([fetchCategoriesData(), fetchProductsData()]);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []); // Remove dependencies to avoid infinite loops
 
   const handleViewProduct = (product: Product) => {
     setSelectedProduct(product);
@@ -200,6 +205,16 @@ export default function GoodsPage() {
     []
   );
 
+  // Handle category filter change
+  const handleCategoryChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const value = e.target.value;
+      setCategoryFilter(value);
+      console.log("Category filter changed to:", value); // Debug log
+    },
+    []
+  );
+
   const filteredGroupedProducts = useMemo(() => {
     if (Object.keys(groupedProducts).length === 0) {
       return {};
@@ -222,12 +237,11 @@ export default function GoodsPage() {
           return matchesSearch;
         });
 
-        if (filteredProducts.length > 0) {
-          filtered[categoryFilter] = {
-            category: categoryData.category,
-            products: filteredProducts,
-          };
-        }
+        // Always include the category even if no products match the search
+        filtered[categoryFilter] = {
+          category: categoryData.category,
+          products: filteredProducts,
+        };
       }
     } else {
       // If no category filter, process all categories
@@ -286,6 +300,29 @@ export default function GoodsPage() {
       );
     }
 
+    // Check if selected category has products but they don't match search
+    if (
+      categoryFilter &&
+      filteredGroupedProducts[categoryFilter]?.products.length === 0
+    ) {
+      const selectedCategory = categoriesData.find(
+        (cat) => cat.id === categoryFilter
+      );
+      return (
+        <div className="text-center py-12">
+          <Package className="w-12 h-12 mx-auto text-gray-400" />
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            No products match your search in{" "}
+            {selectedCategory?.name || "this category"}
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400">
+            Try adjusting your search criteria or clear the search to see all
+            products in this category.
+          </p>
+        </div>
+      );
+    }
+
     // If no products at all
     if (Object.keys(filteredGroupedProducts).length === 0) {
       return (
@@ -324,70 +361,76 @@ export default function GoodsPage() {
 
             {/* Products Table */}
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-sm">
-                <thead className="bg-gray-50 dark:bg-gray-700">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider flex items-center">
-                      Cost Price
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Selling Price
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Quantity
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Stock Level
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {categoryData.products.map((product, index) => (
-                    <tr
-                      key={product.id}
-                      className={`${
-                        index % 2 === 0
-                          ? "bg-white dark:bg-gray-800"
-                          : "bg-gray-50 dark:bg-gray-700"
-                      } hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition-colors`}
-                      onClick={() => handleViewProduct(product)}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="font-medium text-gray-900 dark:text-white">
-                          {product.name}
-                        </span>
-                      </td>
-                      {/* Cost Price Column - Separate TD */}
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
-                        <div className="flex items-center gap-2">
-                          <span className="text-gray-500">GHS</span>
-                          <span>
-                            {product.buyingPrice?.toFixed(2) || "0.00"}
-                          </span>
-                        </div>
-                      </td>
-                      {/* Selling Price Column - Separate TD */}
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
-                        <div className="flex items-center gap-2">
-                          <span className="text-gray-500">GHS</span>
-                          <span>
-                            {product.sellingPrice?.toFixed(2) || "0.00"}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
-                        {product.quantity || 0}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getStatusBadge(product)}
-                      </td>
+              {categoryData.products.length > 0 ? (
+                <table className="w-full border-collapse text-sm">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Name
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider flex items-center">
+                        Cost Price
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Selling Price
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Quantity
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Stock Level
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {categoryData.products.map((product, index) => (
+                      <tr
+                        key={product.id}
+                        className={`${
+                          index % 2 === 0
+                            ? "bg-white dark:bg-gray-800"
+                            : "bg-gray-50 dark:bg-gray-700"
+                        } hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition-colors`}
+                        onClick={() => handleViewProduct(product)}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            {product.name}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-500">GHS</span>
+                            <span>
+                              {product.buyingPrice?.toFixed(2) || "0.00"}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-500">GHS</span>
+                            <span>
+                              {product.sellingPrice?.toFixed(2) || "0.00"}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
+                          {product.quantity || 0}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {getStatusBadge(product)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-500 dark:text-gray-400">
+                    No products found in this category matching your search.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -422,10 +465,11 @@ export default function GoodsPage() {
       );
       toast.success(`Products deleted from ${categoryName}`);
 
-      groupProductsByCategory();
-      window.location.reload();
+      // Don't reload the page, just refetch the data
+      await fetchProductsData();
     } catch (error) {
       console.error("Error deleting category products:", error);
+      toast.error("Failed to delete category products");
     } finally {
       setDeleteCategoryItem(false);
     }
@@ -520,7 +564,7 @@ export default function GoodsPage() {
               {/* Category Filter */}
               <select
                 value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
+                onChange={handleCategoryChange}
                 className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               >
                 {categoriesData.map((category) => (
@@ -540,15 +584,16 @@ export default function GoodsPage() {
                 handleDeleteCategory(categoryFilter);
               }
             }}
+            disabled={!categoryFilter || deleteCategoryItem}
           >
             <MdDelete size={24} />
             <span className="hidden md:block">
-              {deleteCategoryItem ? "Deleting" : " Delete Category Products"}
+              {deleteCategoryItem ? "Deleting..." : "Delete Category Products"}
             </span>
           </Button>
         </div>
 
-        {/* Table  for goods */}
+        {/* Table for goods */}
         {renderGroupedProducts()}
       </div>
 
@@ -617,7 +662,7 @@ export default function GoodsPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                         <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                          ${selectedProduct.sellingPrice}
+                          GHS {selectedProduct.sellingPrice}
                         </div>
                         <div className="text-sm text-gray-600 dark:text-gray-400">
                           Selling Price
@@ -625,7 +670,7 @@ export default function GoodsPage() {
                       </div>
                       <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                         <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                          ${selectedProduct.buyingPrice}
+                          GHS {selectedProduct.buyingPrice}
                         </div>
                         <div className="text-sm text-gray-600 dark:text-gray-400">
                           Cost Price
@@ -661,7 +706,7 @@ export default function GoodsPage() {
                           Total Value:
                         </span>
                         <span className="text-gray-900 dark:text-white">
-                          $
+                          GHS{" "}
                           {getTotalValue(
                             selectedProduct.sellingPrice,
                             selectedProduct.quantity
