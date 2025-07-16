@@ -15,7 +15,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-
+    // console.log("Body>>", body);
     const response = await fetch(`${baseUrl}/users/authenticate`, {
       method: "POST",
       headers: {

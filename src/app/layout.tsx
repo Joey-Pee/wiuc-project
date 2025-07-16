@@ -3,7 +3,7 @@ import "./globals.css";
 import Applayout from "@/components/Applayout";
 
 export const metadata: Metadata = {
-  title: "Inventory Project",
+  title: "InvenTrack",
   description: "WICU Group Project",
 };
 
