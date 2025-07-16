@@ -195,7 +195,6 @@ const AddProductPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200 md:pb-4">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             Add New Products
@@ -205,7 +204,6 @@ const AddProductPage = () => {
           </p>
         </div>
 
-        {/* Products List */}
         {products.length > 0 && (
           <div className="mb-6">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
@@ -241,7 +239,6 @@ const AddProductPage = () => {
           </div>
         )}
 
-        {/* Form */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
           <form onSubmit={handleSaveAll} className="p-6 space-y-6">
             {/* Basic Information */}
